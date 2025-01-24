@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "jsx": "react", // or "react-jsx" for React 17+ and newer JSX transform
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src/**/*"]
+}
