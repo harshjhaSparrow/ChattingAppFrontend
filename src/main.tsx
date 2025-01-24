@@ -10,9 +10,10 @@ import {
 import { createRoot } from "react-dom/client";
 import { io } from "socket.io-client";
 import "./App.css";
+import { Images } from "./Utils/Images";
 
-function ChatWindow({username}:any) {
-  console.log("recieved is : username",username)
+function ChatWindow({ username }: any) {
+  console.log("recieved is : username", username);
   const [socket, setSocket] = useState<any | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [inputMessage, setInputMessage] = useState<string>("");
@@ -34,7 +35,6 @@ function ChatWindow({username}:any) {
     };
   }, []);
 
-  
   useEffect(() => {
     const newSocket: any = io("http://localhost:3999/");
     setSocket(newSocket);
@@ -96,11 +96,17 @@ function ChatWindow({username}:any) {
   const handleDisconnect = () => {
     if (socket) {
       alert("Disconnecting...");
-      socket.emit("disconnected"); // Disconnect from partner
+      // Notify the server of manual disconnect
+      socket.emit("manual-disconnect", { partnerId });
+
+      // Update the local state
       setStatus("waiting"); // Reset status to waiting
       setMatchedWith(""); // Clear matched partner info
       setMessages([]); // Clear messages
       setPartnerId(null); // Reset partner ID
+
+      // Optionally disconnect the socket completely
+      socket.disconnect();
     }
   };
 
@@ -129,8 +135,8 @@ function ChatWindow({username}:any) {
       {status === "disconnected" ? (
         <>
           <div>
-            {matchedWith}Partner has disconnected. We are constantly trying to match
-            you up with someone else.
+            {matchedWith}Partner has disconnected. We are constantly trying to
+            match you up with someone else.
           </div>
           <button
             onClick={handleReconnect}
@@ -142,14 +148,24 @@ function ChatWindow({username}:any) {
       ) : (
         <>
           {" "}
-          <div className="messages bg-gray-100 rounded-lg p-4 mb-4 h-60 overflow-y-auto">
-            {messages.map((msg, index) => (
-              <div key={index} className="message mb-2">
-                <strong className="text-blue-600">{msg.user}:</strong>{" "}
-                <span className="text-gray-700">{msg.text}</span>
+          {status === "waiting" ? (
+            <>
+              <div className="messages bg-gray-100  rounded-lg p-4 mb-4 h-60 overflow-y-hidden">
+                <img src={Images?.LookingForPartner} alt="Partner Vector" />
               </div>
-            ))}
-          </div>
+            </>
+          ) : (
+            <>
+              <div className="messages bg-gray-100 rounded-lg p-4 mb-4 h-60 overflow-y-auto">
+                {messages.map((msg, index) => (
+                  <div key={index} className=" mb-2">
+                    <strong className="text-blue-600">{msg.user}:</strong>{" "}
+                    <span className="text-gray-700">{msg.text}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </>
       )}
 
@@ -191,12 +207,15 @@ function ChatWindow({username}:any) {
           onClick={handleReconnect}
           className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-all"
         >
-          Find New Partner
+          "Oh no! Still no partner? Don’t worry, you’re not{" "}
+          <span className="italic">that</span> unpopular. Feel free to{" "}
+          <span className="font-bold">refresh</span>. Maybe the universe will be
+          kinder next time!"
         </button>
       )}
       <div className="text-center text-sm text-gray-500 mt-4">
         Users Online:{" "}
-        <span className="font-bold text-blue-600">{usersOnline + 100}</span>
+        <span className="font-bold text-blue-600">{usersOnline + 1370}</span>
       </div>
     </div>
   );
@@ -235,6 +254,7 @@ function UserRegistration() {
             <input
               ref={inputRef}
               type="text"
+              autoComplete="on"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -259,7 +279,7 @@ function UserRegistration() {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <div className="h-screen w-screen">
+    <div className="h-screen overflow-hidden w-screen">
       <div>
         <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center">
           <div className="bg-white shadow-lg rounded-lg w-full max-w-md p-6">
