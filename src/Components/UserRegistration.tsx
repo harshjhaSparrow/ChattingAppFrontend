@@ -27,7 +27,7 @@ const UserRegistration = () => {
     <div className="flex flex-col items-center justify-center bg-white rounded-lg h-full w-full ">
       {!isRegistered ? (
         <div className="w-full h-full p-4 flex flex-col justify-between">
-          <div className="text-xl font-semibold text-blue-600 text-center mb-4">
+          <div className="text-xl font-semibold text-primaryTheme text-center mb-4">
             Welcome to ChatApp
           </div>
           <div>
@@ -38,12 +38,12 @@ const UserRegistration = () => {
               onChange={(e) => setUsername(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Enter your username"
-              className="w-full border border-gray-300 rounded-lg p-2 mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-lg p-2 mb-2 focus:outline-none focus:ring-2 focus:ring-primaryTheme"
             />
             {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
             <button
               onClick={handleRegister}
-              className="w-full bg-blue-600 text-white font-medium py-2 rounded-lg hover:bg-blue-700 transition-all"
+              className="w-full bg-primaryTheme text-white font-medium py-2 rounded-lg hover:bg-onHoveringPrimaryTheme transition-all"
             >
               Register
             </button>

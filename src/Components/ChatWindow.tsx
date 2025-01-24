@@ -93,7 +93,7 @@ const ChatWindow: React.FC<any> = ({ username }) => {
         </div>
       )}
       {matchedWith && status !== "waiting" && (
-        <div className="text-lg font-semibold text-blue-600 mb-4">
+        <div className="text-lg font-semibold text-primaryTheme mb-4">
           Matched with: <span className="font-bold">{matchedWith}</span>
         </div>
       )}
@@ -116,7 +116,7 @@ const ChatWindow: React.FC<any> = ({ username }) => {
           <div className="messages bg-gray-100 rounded-lg p-4 mb-4 h-60 overflow-y-auto">
             {messages.map((msg, index) => (
               <div key={index} className="message mb-2">
-                <strong className="text-blue-600">{msg.user}:</strong>{" "}
+                <strong className="text-primaryTheme">{msg.user}:</strong>{" "}
                 <span className="text-gray-700">{msg.text}</span>
               </div>
             ))}
@@ -136,12 +136,12 @@ const ChatWindow: React.FC<any> = ({ username }) => {
               }
             }}
             placeholder="Type your message..."
-            className="flex-1 border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-primaryTheme"
           />
           <button
             onClick={handleSendMessage}
             disabled={!inputMessage.trim()}
-            className={`bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-all ${
+            className={`bg-primaryTheme text-white px-4 py-2 rounded-lg font-medium hover:bg-onHoveringPrimaryTheme transition-all ${
               !inputMessage.trim() ? "opacity-50 cursor-not-allowed" : ""
             }`}
           >
@@ -167,7 +167,7 @@ const ChatWindow: React.FC<any> = ({ username }) => {
       )}
       <div className="text-center text-sm text-gray-500 mt-4">
         Users Online:{" "}
-        <span className="font-bold text-blue-600">{usersOnline + 100}</span>
+        <span className="font-bold text-primaryTheme">{usersOnline + 100}</span>
       </div>
     </div>
   );

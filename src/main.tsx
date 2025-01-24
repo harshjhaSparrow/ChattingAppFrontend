@@ -128,8 +128,12 @@ function ChatWindow({ username }: any) {
         </div>
       )}
       {matchedWith && status !== "waiting" && (
-        <div className="text-lg font-semibold text-blue-600 mb-4">
-          Chatting With : <span className="font-bold">{matchedWith}</span>
+        <div className="text-lg font-semibold text-primaryTheme mb-4">
+          You’ve matched with: <span className="font-bold">{matchedWith}</span>{" "}
+          –{" "}
+          <span className="italic">
+            Your conversation just got a whole lot more interesting!
+          </span>
         </div>
       )}
       {status === "disconnected" ? (
@@ -159,7 +163,7 @@ function ChatWindow({ username }: any) {
               <div className="messages bg-gray-100 rounded-lg p-4 mb-4 h-60 overflow-y-auto">
                 {messages.map((msg, index) => (
                   <div key={index} className=" mb-2">
-                    <strong className="text-blue-600">{msg.user}:</strong>{" "}
+                    <strong className="text-primaryTheme">{msg.user}:</strong>{" "}
                     <span className="text-gray-700">{msg.text}</span>
                   </div>
                 ))}
@@ -181,12 +185,12 @@ function ChatWindow({ username }: any) {
               }
             }}
             placeholder="Type your message..."
-            className="flex-1 border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-primaryTheme"
           />
           <button
             onClick={handleSendMessage}
             disabled={!inputMessage.trim()}
-            className={`bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-all ${
+            className={`bg-primaryTheme text-white px-4 py-2 rounded-lg font-medium hover:bg-onHoveringPrimaryTheme transition-all ${
               !inputMessage.trim() ? "opacity-50 cursor-not-allowed" : ""
             }`}
           >
@@ -215,7 +219,7 @@ function ChatWindow({ username }: any) {
       )}
       <div className="text-center text-sm text-gray-500 mt-4">
         Users Online:{" "}
-        <span className="font-bold text-blue-600">{usersOnline + 1370}</span>
+        <span className="font-bold text-primaryTheme">{usersOnline + 1232}</span>
       </div>
     </div>
   );
@@ -247,7 +251,7 @@ function UserRegistration() {
     <div className="flex flex-col items-center justify-center bg-white rounded-lg h-full w-full ">
       {!isRegistered ? (
         <div className="w-full h-full p-4 flex flex-col justify-between">
-          <div className="text-xl font-semibold text-blue-600 text-center mb-4">
+          <div className="text-xl font-semibold text-primaryTheme text-center mb-4">
             Welcome to ChatApp
           </div>
           <div>
@@ -259,12 +263,12 @@ function UserRegistration() {
               onChange={(e) => setUsername(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Enter your username"
-              className="w-full border border-gray-300 rounded-lg p-2 mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-lg p-2 mb-2 focus:outline-none focus:ring-2 focus:ring-primaryTheme"
             />
             {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
             <button
               onClick={handleRegister}
-              className="w-full bg-blue-600 text-white font-medium py-2 rounded-lg hover:bg-blue-700 transition-all"
+              className="w-full bg-primaryTheme text-white font-medium py-2 rounded-lg hover:bg-onHoveringPrimaryTheme transition-all"
             >
               Register
             </button>
@@ -283,7 +287,7 @@ createRoot(document.getElementById("root")!).render(
       <div>
         <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center">
           <div className="bg-white shadow-lg rounded-lg w-full max-w-md p-6">
-            <h1 className="text-2xl font-bold text-center text-blue-600 mb-6">
+            <h1 className="text-2xl font-bold text-center text-primaryTheme mb-6">
               Chat App
             </h1>
             <UserRegistration />
