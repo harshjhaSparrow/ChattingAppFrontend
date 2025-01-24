@@ -22,6 +22,20 @@ function ChatWindow({username}:any) {
   const [matchedWith, setMatchedWith] = useState<string>("");
 
   useEffect(() => {
+    const audio = new Audio("https://www.soundjay.com/button/beep-07.wav"); // 1-second beep sound
+    audio.play().catch((error) => {
+      console.error("Error playing audio:", error);
+    });
+
+    // Optional cleanup
+    return () => {
+      audio.pause();
+      audio.currentTime = 0;
+    };
+  }, []);
+
+  
+  useEffect(() => {
     const newSocket: any = io("http://localhost:3999/");
     setSocket(newSocket);
     newSocket.emit("register-user", username);
