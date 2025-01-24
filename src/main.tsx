@@ -11,7 +11,8 @@ import { createRoot } from "react-dom/client";
 import { io } from "socket.io-client";
 import "./App.css";
 
-function ChatWindow(username: any) {
+function ChatWindow({username}:any) {
+  console.log("recieved is : username",username)
   const [socket, setSocket] = useState<any | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [inputMessage, setInputMessage] = useState<string>("");
@@ -21,7 +22,7 @@ function ChatWindow(username: any) {
   const [matchedWith, setMatchedWith] = useState<string>("");
 
   useEffect(() => {
-    const newSocket: any = io("https://chattingapp-1-gpeu.onrender.com");
+    const newSocket: any = io("http://localhost:3999/");
     setSocket(newSocket);
     newSocket.emit("register-user", username);
 
@@ -35,10 +36,13 @@ function ChatWindow(username: any) {
     });
 
     newSocket.on("matched-user", (message: string) => {
-      setMatchedWith(message);
+      // setMatchedWith(message);
+      console.log("Matche duser is L: ", message);
     });
 
     newSocket.on("chat-started", (partner: any) => {
+      console.log("partnechatr", partner?.username);
+      setMatchedWith(partner?.username);
       setPartnerId(partner.userId);
       setStatus("started");
     });
@@ -105,13 +109,13 @@ function ChatWindow(username: any) {
       )}
       {matchedWith && status !== "waiting" && (
         <div className="text-lg font-semibold text-blue-600 mb-4">
-          Matched with: <span className="font-bold">{matchedWith}</span>
+          Chatting With : <span className="font-bold">{matchedWith}</span>
         </div>
       )}
       {status === "disconnected" ? (
         <>
           <div>
-            {matchedWith} has disconnected. We are constantly trying to match
+            {matchedWith}Partner has disconnected. We are constantly trying to match
             you up with someone else.
           </div>
           <button
