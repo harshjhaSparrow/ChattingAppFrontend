@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-refresh/only-export-components */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
@@ -10,7 +11,8 @@ import {
 import { createRoot } from "react-dom/client";
 import { io } from "socket.io-client";
 import "./App.css";
-import { Images } from "./Utils/Images";
+import { capitalizeFirstLetters } from "./Utils/Commonfunctions";
+import Images from "./Utils/Images";
 
 function ChatWindow({ username }: any) {
   console.log("recieved is : username", username);
@@ -127,9 +129,17 @@ function ChatWindow({ username }: any) {
   };
 
   return (
-    <div className="bg-white flex justify-between flex-col rounded-lg w-full ">
+    <div className="bg-white flex justify-between flex-col h-full rounded-lg w-full ">
       {status === "connecting" && (
-        <div className="text-center text-gray-500">Connecting...</div>
+        <div className="text-center flex justify-center items-center w-full h-full text-gray-500">
+          <div>
+            <img
+              src={Images.CoffeeDonut}
+              className="w-[150px] h-[100px]"
+              alt=""
+            />
+          </div>
+        </div>
       )}
       {status === "waiting" && (
         <div className="text-center text-gray-500">
@@ -137,9 +147,12 @@ function ChatWindow({ username }: any) {
         </div>
       )}
       {matchedWith && status !== "waiting" && (
-        <div className="text-lg font-semibold text-primaryTheme mb-4">
+        <div className="text-lg text-center font-semibold text-primaryTheme mb-4">
           You’ve matched with:{" "}
-          <span className="font-bold">{matchedWith?.username}</span> –{" "}
+          <span className="font-bold">
+            {capitalizeFirstLetters(matchedWith?.username)}
+          </span>{" "}
+          –{" "}
           <span className="italic">
             Your conversation just got a whole lot more interesting!
           </span>
@@ -163,32 +176,45 @@ function ChatWindow({ username }: any) {
           {" "}
           {status === "waiting" ? (
             <>
-              <div className="messages bg-gray-100  rounded-lg p-4 mb-4 h-60 overflow-y-hidden">
-                <img src={Images?.LookingForPartner} alt="Partner Vector" />
+              <div className="messages rounded-full flex justify-center items-center  p-4 mb-4 h-fit overflow-y-hidden">
+                <img
+                  src={Images?.LookingForPartner}
+                  className="h-[200px] rounded-full w-[00px]"
+                  alt="Partner Vector"
+                />
               </div>
             </>
           ) : (
             <>
-              <div className="flex flex-col h-60 overflow-y-auto">
-                {messages.map((msg, index) => (
-                  <div
-                    key={index}
-                    className={`mb-2 flex items-center ${
-                      msg.isOwnMessage ? "justify-end" : "justify-start"
-                    }`}
-                  >
-                    <div
-                      className={`rounded-md px-2 py-1 text-sm ${
-                        msg.isOwnMessage
-                          ? "bg-primaryTheme text-white ml-2"
-                          : "bg-gray-200 text-gray-800 mr-2"
-                      }`}
-                    >
-                      <strong>{msg.user}:</strong> <span>{msg.text}</span>
+              {status === "connecting" ? (
+                <>Conecting</>
+              ) : (
+                <>
+                  <div className="flex flex-col h-60 overflow-y-auto">
+                    <div>
+                      {messages?.map((msg, index) => (
+                        <div
+                          key={index}
+                          className={`mb-2 flex items-center ${
+                            msg.isOwnMessage ? "justify-end" : "justify-start"
+                          }`}
+                        >
+                          <div
+                            className={`rounded-md px-2 py-1 text-sm ${
+                              msg.isOwnMessage
+                                ? "bg-primaryTheme text-white ml-2"
+                                : "bg-gray-200 text-gray-800 mr-2"
+                            }`}
+                          >
+                            {/* <strong>{msg.user}:</strong>  */}
+                            <span>{msg.text}</span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
-              </div>
+                </>
+              )}
             </>
           )}
         </>
@@ -223,30 +249,26 @@ function ChatWindow({ username }: any) {
         </div>
       )}
       {status === "started" && (
-        <button
-          onClick={handleDisconnect}
-          className="bg-primaryTheme text-white px-4 py-2 rounded-lg font-medium hover:bg-onHoveringPrimaryTheme transition-all"
-        >
-          Disconnect from partner
-        </button>
+        <div className="flex items-center justify-center">
+          <div>
+            <button
+              onClick={handleDisconnect}
+              className="bg-primaryTheme text-white px-4 py-2 rounded-lg font-medium hover:bg-onHoveringPrimaryTheme transition-all"
+            >
+              Disconnect from partner
+            </button>
+          </div>
+        </div>
       )}
       {status === "waiting" && (
-        <button
-          onClick={handleReconnect}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-all"
-        >
-          "Oh no! Still no partner? Don’t worry, you’re not{" "}
-          <span className="italic">that</span> unpopular. Feel free to{" "}
-          <span className="font-bold">refresh</span>. Maybe the universe will be
-          kinder next time!"
-        </button>
+        <div className="flex items-center justify-center">
+          <div className="bg-green-600 text-white w-full text-center px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-all">
+            <span className="italic">that</span> unpopular. Feel free to{" "}
+            <span className="font-bold">refresh</span>. Maybe the universe will
+            be kinder next time!"
+          </div>
+        </div>
       )}
-      <div className="text-center text-sm text-gray-500 mt-4">
-        Users Online:{" "}
-        <span className="font-bold text-primaryTheme">
-          {usersOnline + 1232}
-        </span>
-      </div>
     </div>
   );
 }
@@ -274,12 +296,44 @@ function UserRegistration() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center bg-white rounded-lg h-full w-full ">
+    <div className="flex flex-col items-center p-4 justify-center bg-white h-full w-full ">
+      <div className="text-2xl pl-8 py-4 left font-bold w-full text-center text-primaryTheme">
+        <div>Blind</div>
+        <div></div>
+      </div>
       {!isRegistered ? (
-        <div className="w-full h-full p-4 flex flex-col justify-between">
+        <div className="w-full h-full py-6 px-4 flex flex-col justify-between">
           <div className="text-xl font-semibold text-primaryTheme text-center mb-4">
             Welcome to ChatApp
           </div>
+          <div className="bg-gray-50 p-6 rounded-2xl shadow-md max-w-lg mx-auto">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4 text-center">
+              Chat Guidelines
+            </h2>
+            <ul className="space-y-3 text-gray-700 text-base">
+              <li className="flex items-start">
+                <span className="mr-2 text-blue-500 font-semibold">•</span> Be
+                respectful and kind to others.
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2 text-blue-500 font-semibold">•</span> Do
+                not share personal information or photos.
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2 text-blue-500 font-semibold">•</span> No
+                harassment or hate speech allowed.
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2 text-blue-500 font-semibold">•</span> Keep
+                conversations family-friendly.
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2 text-blue-500 font-semibold">•</span> If
+                you feel uncomfortable, leave the chat immediately.
+              </li>
+            </ul>
+          </div>
+
           <div>
             <input
               ref={inputRef}
@@ -312,10 +366,7 @@ createRoot(document.getElementById("root")!).render(
     <div className="h-screen overflow-hidden w-screen">
       <div>
         <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center">
-          <div className="bg-white shadow-lg rounded-lg w-full max-w-md p-6">
-            <h1 className="text-2xl font-bold text-center text-primaryTheme mb-6">
-              Blind
-            </h1>
+          <div className="bg-white shadow-lg rounded-lg w-full h-screen ">
             <UserRegistration />
           </div>
         </div>

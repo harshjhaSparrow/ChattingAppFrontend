@@ -1,5 +1,8 @@
 import LookingForPartner from "../../public/LookingForPartner.gif";
-
-export const Images = {
+import CoffeeDonut from "../../public/coffeedonutgif.gif";
+const Images = {
   LookingForPartner,
+  CoffeeDonut,
 };
+
+export default Images;
