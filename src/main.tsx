@@ -20,7 +20,7 @@ function ChatWindow({ username }: any) {
   const [partnerId, setPartnerId] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("connecting");
   const [usersOnline, setUsersOnline] = useState(0);
-  const [matchedWith, setMatchedWith] = useState<string>("");
+  const [matchedWith, setMatchedWith]: any = useState<any>(null);
 
   useEffect(() => {
     const audio = new Audio("https://www.soundjay.com/button/beep-07.wav"); // 1-second beep sound
@@ -50,13 +50,12 @@ function ChatWindow({ username }: any) {
     });
 
     newSocket.on("matched-user", (message: string) => {
-      // setMatchedWith(message);
       console.log("Matche duser is L: ", message);
     });
 
     newSocket.on("chat-started", (partner: any) => {
-      console.log("partnechatr", partner?.username);
-      setMatchedWith(partner?.username);
+      console.log("partnechatr", partner);
+      setMatchedWith(partner);
       setPartnerId(partner.userId);
       setStatus("started");
     });
@@ -65,7 +64,7 @@ function ChatWindow({ username }: any) {
       console.log("partner-disconnected", message);
       setStatus("disconnected");
       // After a disconnection, automatically attempt to find a new match
-      setMatchedWith(""); // Reset matched partner info
+      setMatchedWith(null); // Reset matched partner info
       setMessages([]); // Clear message history
       setPartnerId(null); // Reset partner ID
     });
@@ -88,7 +87,10 @@ function ChatWindow({ username }: any) {
   const handleSendMessage = () => {
     if (socket && partnerId) {
       socket.emit("send-message", { message: inputMessage, to: partnerId });
-      setMessages((prev) => [...prev, { user: "Me", text: inputMessage }]);
+      setMessages((prev) => [
+        ...prev,
+        { user: "Me", text: inputMessage, isOwnMessage: true },
+      ]);
       setInputMessage("");
     }
   };
@@ -117,6 +119,13 @@ function ChatWindow({ username }: any) {
     }
   };
 
+  const handleTyping = () => {
+    socket.emit("user-typing", {
+      username, // Your username
+      to: partnerId, // Recipient's ID
+    });
+  };
+
   return (
     <div className="bg-white flex justify-between flex-col rounded-lg w-full ">
       {status === "connecting" && (
@@ -129,8 +138,8 @@ function ChatWindow({ username }: any) {
       )}
       {matchedWith && status !== "waiting" && (
         <div className="text-lg font-semibold text-primaryTheme mb-4">
-          You’ve matched with: <span className="font-bold">{matchedWith}</span>{" "}
-          –{" "}
+          You’ve matched with:{" "}
+          <span className="font-bold">{matchedWith?.username}</span> –{" "}
           <span className="italic">
             Your conversation just got a whole lot more interesting!
           </span>
@@ -139,8 +148,8 @@ function ChatWindow({ username }: any) {
       {status === "disconnected" ? (
         <>
           <div>
-            {matchedWith}Partner has disconnected. We are constantly trying to
-            match you up with someone else.
+            {matchedWith?.userName}Partner has disconnected. We are constantly
+            trying to match you up with someone else.
           </div>
           <button
             onClick={handleReconnect}
@@ -160,11 +169,23 @@ function ChatWindow({ username }: any) {
             </>
           ) : (
             <>
-              <div className="messages bg-gray-100 rounded-lg p-4 mb-4 h-60 overflow-y-auto">
+              <div className="flex flex-col h-60 overflow-y-auto">
                 {messages.map((msg, index) => (
-                  <div key={index} className=" mb-2">
-                    <strong className="text-primaryTheme">{msg.user}:</strong>{" "}
-                    <span className="text-gray-700">{msg.text}</span>
+                  <div
+                    key={index}
+                    className={`mb-2 flex items-center ${
+                      msg.isOwnMessage ? "justify-end" : "justify-start"
+                    }`}
+                  >
+                    <div
+                      className={`rounded-md px-2 py-1 text-sm ${
+                        msg.isOwnMessage
+                          ? "bg-primaryTheme text-white ml-2"
+                          : "bg-gray-200 text-gray-800 mr-2"
+                      }`}
+                    >
+                      <strong>{msg.user}:</strong> <span>{msg.text}</span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -178,7 +199,10 @@ function ChatWindow({ username }: any) {
           <input
             type="text"
             value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
+            onChange={(e) => {
+              setInputMessage(e.target.value);
+              handleTyping();
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 handleSendMessage();
@@ -201,7 +225,7 @@ function ChatWindow({ username }: any) {
       {status === "started" && (
         <button
           onClick={handleDisconnect}
-          className="bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-all"
+          className="bg-primaryTheme text-white px-4 py-2 rounded-lg font-medium hover:bg-onHoveringPrimaryTheme transition-all"
         >
           Disconnect from partner
         </button>
@@ -219,7 +243,9 @@ function ChatWindow({ username }: any) {
       )}
       <div className="text-center text-sm text-gray-500 mt-4">
         Users Online:{" "}
-        <span className="font-bold text-primaryTheme">{usersOnline + 1232}</span>
+        <span className="font-bold text-primaryTheme">
+          {usersOnline + 1232}
+        </span>
       </div>
     </div>
   );
@@ -288,7 +314,7 @@ createRoot(document.getElementById("root")!).render(
         <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center">
           <div className="bg-white shadow-lg rounded-lg w-full max-w-md p-6">
             <h1 className="text-2xl font-bold text-center text-primaryTheme mb-6">
-              Chat App
+              Blind
             </h1>
             <UserRegistration />
           </div>

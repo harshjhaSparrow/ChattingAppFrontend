@@ -152,7 +152,7 @@ const ChatWindow: React.FC<any> = ({ username }) => {
       {status === "started" && (
         <button
           onClick={handleDisconnect}
-          className="bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-all"
+          className="bg-primaryTheme text-white px-4 py-2 rounded-lg font-medium hover:bg-onHoveringPrimaryTheme transition-all"
         >
           Disconnect from partner
         </button>
