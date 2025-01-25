@@ -31,6 +31,9 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     }
     return to.concat(ar || Array.prototype.slice.call(from));
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-refresh/only-export-components */
@@ -39,8 +42,24 @@ var react_1 = __importStar(require("react"));
 var client_1 = require("react-dom/client");
 var socket_io_client_1 = require("socket.io-client");
 require("./App.css");
-var Commonfunctions_1 = require("./Utils/Commonfunctions");
-var Images_1 = require("./Utils/Images");
+// import { capitalizeFirstLetters } from "./Utils/Commonfunctions";
+var LookingForPartner_gif_1 = __importDefault(require("../public/LookingForPartner.gif"));
+var coffeedonutgif_gif_1 = __importDefault(require("../public/coffeedonutgif.gif"));
+function capitalizeFirstLetters(str) {
+    // Convert string to array of characters
+    var chars = str.split("");
+    // Capitalize the first letter of each word
+    for (var i = 0; i < chars.length; i++) {
+        if (i === 0 || chars[i - 1] === " ") {
+            chars[i] = chars[i].toUpperCase();
+        }
+        else {
+            chars[i] = chars[i].toLowerCase();
+        }
+    }
+    // Join the characters back into a string
+    return chars.join("");
+}
 function ChatWindow(_a) {
     var username = _a.username;
     console.log("recieved is : username", username);
@@ -138,12 +157,12 @@ function ChatWindow(_a) {
     return (react_1.default.createElement("div", { className: "bg-white flex justify-between flex-col h-full rounded-lg w-full " },
         status === "connecting" && (react_1.default.createElement("div", { className: "text-center flex justify-center items-center w-full h-full text-gray-500" },
             react_1.default.createElement("div", null,
-                react_1.default.createElement("img", { src: Images_1.Images.CoffeeDonut, className: "w-[150px] h-[100px]", alt: "" })))),
+                react_1.default.createElement("img", { src: coffeedonutgif_gif_1.default, className: "w-[150px] h-[100px]", alt: "" })))),
         status === "waiting" && (react_1.default.createElement("div", { className: "text-center text-gray-500" }, "Please wait! We are looking for a match...")),
         matchedWith && status !== "waiting" && (react_1.default.createElement("div", { className: "text-lg text-center font-semibold text-primaryTheme mb-4" },
             "You\u2019ve matched with:",
             " ",
-            react_1.default.createElement("span", { className: "font-bold" }, (0, Commonfunctions_1.capitalizeFirstLetters)(matchedWith === null || matchedWith === void 0 ? void 0 : matchedWith.username)),
+            react_1.default.createElement("span", { className: "font-bold" }, capitalizeFirstLetters(matchedWith === null || matchedWith === void 0 ? void 0 : matchedWith.username)),
             " ",
             "\u2013",
             " ",
@@ -156,7 +175,7 @@ function ChatWindow(_a) {
             " ",
             status === "waiting" ? (react_1.default.createElement(react_1.default.Fragment, null,
                 react_1.default.createElement("div", { className: "messages rounded-full flex justify-center items-center  p-4 mb-4 h-fit overflow-y-hidden" },
-                    react_1.default.createElement("img", { src: Images_1.Images === null || Images_1.Images === void 0 ? void 0 : Images_1.Images.LookingForPartner, className: "h-[200px] rounded-full w-[00px]", alt: "Partner Vector" })))) : (react_1.default.createElement(react_1.default.Fragment, null, status === "connecting" ? (react_1.default.createElement(react_1.default.Fragment, null, "Conecting")) : (react_1.default.createElement(react_1.default.Fragment, null,
+                    react_1.default.createElement("img", { src: LookingForPartner_gif_1.default, className: "h-[200px] rounded-full w-[00px]", alt: "Partner Vector" })))) : (react_1.default.createElement(react_1.default.Fragment, null, status === "connecting" ? (react_1.default.createElement(react_1.default.Fragment, null, "Conecting")) : (react_1.default.createElement(react_1.default.Fragment, null,
                 react_1.default.createElement("div", { className: "flex flex-col h-60 overflow-y-auto" },
                     react_1.default.createElement("div", null, messages === null || messages === void 0 ? void 0 : messages.map(function (msg, index) { return (react_1.default.createElement("div", { key: index, className: "mb-2 flex items-center ".concat(msg.isOwnMessage ? "justify-end" : "justify-start") },
                         react_1.default.createElement("div", { className: "rounded-md px-2 py-1 text-sm ".concat(msg.isOwnMessage

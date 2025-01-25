@@ -11,8 +11,26 @@ import {
 import { createRoot } from "react-dom/client";
 import { io } from "socket.io-client";
 import "./App.css";
-import { capitalizeFirstLetters } from "./Utils/Commonfunctions";
-import Images from "./Utils/Images";
+// import { capitalizeFirstLetters } from "./Utils/Commonfunctions";
+import LookingForPartner from "../public/LookingForPartner.gif";
+import CoffeeDonut from "../public/coffeedonutgif.gif";
+
+function capitalizeFirstLetters(str: string) {
+  // Convert string to array of characters
+  const chars: any = str.split("");
+
+  // Capitalize the first letter of each word
+  for (let i = 0; i < chars.length; i++) {
+    if (i === 0 || chars[i - 1] === " ") {
+      chars[i] = chars[i].toUpperCase();
+    } else {
+      chars[i] = chars[i].toLowerCase();
+    }
+  }
+
+  // Join the characters back into a string
+  return chars.join("");
+}
 
 function ChatWindow({ username }: any) {
   console.log("recieved is : username", username);
@@ -133,11 +151,7 @@ function ChatWindow({ username }: any) {
       {status === "connecting" && (
         <div className="text-center flex justify-center items-center w-full h-full text-gray-500">
           <div>
-            <img
-              src={Images.CoffeeDonut}
-              className="w-[150px] h-[100px]"
-              alt=""
-            />
+            <img src={CoffeeDonut} className="w-[150px] h-[100px]" alt="" />
           </div>
         </div>
       )}
@@ -178,7 +192,7 @@ function ChatWindow({ username }: any) {
             <>
               <div className="messages rounded-full flex justify-center items-center  p-4 mb-4 h-fit overflow-y-hidden">
                 <img
-                  src={Images?.LookingForPartner}
+                  src={LookingForPartner}
                   className="h-[200px] rounded-full w-[00px]"
                   alt="Partner Vector"
                 />
