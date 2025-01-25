@@ -56,7 +56,7 @@ function ChatWindow({ username }: any) {
   }, []);
 
   useEffect(() => {
-    const newSocket: any = io("https://chattingapp-2-o3ry.onrender.com/");
+    const newSocket: any = io("https://chattingapp-42yp.onrender.com/");
     setSocket(newSocket);
     newSocket.emit("register-user", username);
 
