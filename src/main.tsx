@@ -56,7 +56,7 @@ function ChatWindow({ username }: any) {
   }, []);
 
   useEffect(() => {
-    const newSocket: any = io("https://chattingapp-42yp.onrender.com/");
+    const newSocket: any = io("http://localhost:3999/");
     setSocket(newSocket);
     newSocket.emit("register-user", username);
 
@@ -148,13 +148,6 @@ function ChatWindow({ username }: any) {
 
   return (
     <div className="bg-white flex justify-between flex-col h-full rounded-lg w-full ">
-      {status === "connecting" && (
-        <div className="text-center flex justify-center items-center w-full h-full text-gray-500">
-          <div>
-            <img src={CoffeeDonut} className="w-[150px] h-[100px]" alt="" />
-          </div>
-        </div>
-      )}
       {status === "waiting" && (
         <div className="text-center text-gray-500">
           Please wait! We are looking for a match...
@@ -201,7 +194,20 @@ function ChatWindow({ username }: any) {
           ) : (
             <>
               {status === "connecting" ? (
-                <>Conecting</>
+                <>
+                  <div className="text-center flex flex-col justify-center items-center w-full h-full text-gray-500">
+                    <div>
+                      <img
+                        src={CoffeeDonut}
+                        className="w-[150px] rounded-full h-[150px]"
+                        alt="Coffee and Donut"
+                      />
+                    </div>
+                    <p className="mt-4 text-lg font-medium">
+                      Waiting to match with a new partner...
+                    </p>
+                  </div>
+                </>
               ) : (
                 <>
                   <div className="flex flex-col h-60 overflow-y-auto">
@@ -233,9 +239,8 @@ function ChatWindow({ username }: any) {
           )}
         </>
       )}
-
       {status === "started" && (
-        <div className="input-container flex items-center gap-2 mb-4">
+        <div className="input-container flex items-center gap-2 md:mb-4 mb-0">
           <input
             type="text"
             value={inputMessage}
@@ -277,7 +282,7 @@ function ChatWindow({ username }: any) {
       {status === "waiting" && (
         <div className="flex items-center justify-center">
           <div className="bg-green-600 text-white w-full text-center px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-all">
-            <span className="italic">that</span> unpopular. Feel free to{" "}
+            <span className="italic"></span>Feel free to{" "}
             <span className="font-bold">refresh</span>. Maybe the universe will
             be kinder next time!"
           </div>
