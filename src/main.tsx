@@ -11,15 +11,11 @@ import {
 import { createRoot } from "react-dom/client";
 import { io } from "socket.io-client";
 import "./App.css";
-// import { capitalizeFirstLetters } from "./Utils/Commonfunctions";
 import LookingForPartner from "../public/LookingForPartner.gif";
 import CoffeeDonut from "../public/coffeedonutgif.gif";
 
 function capitalizeFirstLetters(str: string) {
-  // Convert string to array of characters
   const chars: any = str.split("");
-
-  // Capitalize the first letter of each word
   for (let i = 0; i < chars.length; i++) {
     if (i === 0 || chars[i - 1] === " ") {
       chars[i] = chars[i].toUpperCase();
@@ -27,8 +23,6 @@ function capitalizeFirstLetters(str: string) {
       chars[i] = chars[i].toLowerCase();
     }
   }
-
-  // Join the characters back into a string
   return chars.join("");
 }
 
@@ -41,7 +35,7 @@ function ChatWindow({ username }: any) {
   const [status, setStatus] = useState<string>("connecting");
   const [usersOnline, setUsersOnline] = useState(0);
   const [matchedWith, setMatchedWith]: any = useState<any>(null);
-
+  const [myDetails, setMyDetails] = useState<any>(null);
   useEffect(() => {
     const audio = new Audio("https://www.soundjay.com/button/beep-07.wav"); // 1-second beep sound
     audio.play().catch((error) => {
@@ -62,6 +56,11 @@ function ChatWindow({ username }: any) {
 
     newSocket.on("online-users", (users: string[]) => {
       setUsersOnline(users.length);
+    });
+
+    newSocket.on("my-detail", (user: any) => {
+      setMyDetails(user);
+      console.log("useruseruseruseruser", user);
     });
 
     newSocket.on("waiting", (message: string) => {
@@ -91,10 +90,15 @@ function ChatWindow({ username }: any) {
 
     newSocket.on(
       "receive-message",
-      ({ message, from }: { message: string; from: string }) => {
+      ({ message, from }: { message: any; from: string }) => {
+        console.log(" message, from", message, from);
         setMessages((prev) => [
           ...prev,
-          { user: `Partner (${from})`, text: message },
+          {
+            user: `(${from})`,
+            text: message?.text,
+            otherMessageDetails: message,
+          },
         ]);
       }
     );
@@ -105,12 +109,38 @@ function ChatWindow({ username }: any) {
   }, [username]);
 
   const handleSendMessage = () => {
-    if (socket && partnerId) {
-      socket.emit("send-message", { message: inputMessage, to: partnerId });
+    if (socket && partnerId && myDetails) {
+      // Build the message object using myDetails
+      const message = {
+        text: inputMessage, // The text content from the input
+        senderId: myDetails._id, // Use myDetails._id as the senderId
+        receiverId: partnerId, // The ID of the matched partner
+        timestamp: new Date().toISOString(), // Current timestamp when the message is sent
+        messageType: "text", // Assuming it’s a text message for now, can be dynamic
+        status: "sent", // Initially, set as "sent"
+        isOwnMessage: true, // This is the logged-in user’s message
+        attachments: [], // Assuming no attachments for now, you can add media here
+        isTyping: false, // Set to false initially (can be used to show typing indicator)
+      };
+
+      console.log("messagmessagee", message);
+
+      // Emit the message via socket
+      socket.emit("send-message", { message: message, to: partnerId });
+
+      // Update the messages state to reflect the sent message
       setMessages((prev) => [
         ...prev,
-        { user: "Me", text: inputMessage, isOwnMessage: true },
+        {
+          user: myDetails.username, // Use myDetails.username for the sender
+          text: inputMessage,
+          isOwnMessage: true,
+          timestamp: message.timestamp, // Add timestamp to the message display
+          otherMessageDetails: message, // Store the message object for reference
+        },
       ]);
+
+      // Clear the input field after sending
       setInputMessage("");
     }
   };
@@ -204,7 +234,8 @@ function ChatWindow({ username }: any) {
                       />
                     </div>
                     <p className="mt-4 text-lg font-medium">
-                      Waiting to match with a new partner...
+                      Hi {myDetails?.username}! Waiting to match with a new
+                      partner...
                     </p>
                   </div>
                 </>
@@ -212,25 +243,32 @@ function ChatWindow({ username }: any) {
                 <>
                   <div className="flex flex-col h-60 overflow-y-auto">
                     <div>
-                      {messages?.map((msg, index) => (
-                        <div
-                          key={index}
-                          className={`mb-2 flex items-center ${
-                            msg.isOwnMessage ? "justify-end" : "justify-start"
-                          }`}
-                        >
-                          <div
-                            className={`rounded-md px-2 py-1 text-sm ${
-                              msg.isOwnMessage
-                                ? "bg-primaryTheme text-white ml-2"
-                                : "bg-gray-200 text-gray-800 mr-2"
-                            }`}
-                          >
-                            {/* <strong>{msg.user}:</strong>  */}
-                            <span>{msg.text}</span>
-                          </div>
-                        </div>
-                      ))}
+                      {messages?.map(
+                        (msg, index) => (
+                          console.log("msmsgg", msg),
+                          (
+                            <div
+                              key={index}
+                              className={`mb-2 flex items-center ${
+                                msg.isOwnMessage
+                                  ? "justify-end"
+                                  : "justify-start"
+                              }`}
+                            >
+                              <div
+                                className={`rounded-md px-2 py-1 text-sm ${
+                                  msg.isOwnMessage
+                                    ? "bg-primaryTheme text-white ml-2"
+                                    : "bg-gray-200 text-gray-800 mr-2"
+                                }`}
+                              >
+                                {/* <strong>{msg.user}:</strong>  */}
+                                <span>{msg.text}</span>
+                              </div>
+                            </div>
+                          )
+                        )
+                      )}
                     </div>
                   </div>
                 </>
@@ -274,7 +312,7 @@ function ChatWindow({ username }: any) {
               onClick={handleDisconnect}
               className="bg-primaryTheme text-white px-4 py-2 rounded-lg font-medium hover:bg-onHoveringPrimaryTheme transition-all"
             >
-              Disconnect from partner
+              Disconnect & and Find Another
             </button>
           </div>
         </div>
