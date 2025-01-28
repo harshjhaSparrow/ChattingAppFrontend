@@ -10,9 +10,9 @@ import {
 } from "react";
 import { createRoot } from "react-dom/client";
 import { io } from "socket.io-client";
-import "./App.css";
 import LookingForPartner from "../public/LookingForPartner.gif";
 import CoffeeDonut from "../public/coffeedonutgif.gif";
+import "./App.css";
 
 function capitalizeFirstLetters(str: string) {
   const chars: any = str.split("");
@@ -69,11 +69,11 @@ function ChatWindow({ username }: any) {
     });
 
     newSocket.on("matched-user", (message: string) => {
-      console.log("Matche duser is L: ", message);
+      console.log("Matched user is L: ", message);
     });
 
     newSocket.on("chat-started", (partner: any) => {
-      console.log("partnechatr", partner);
+      console.log("partner chat", partner);
       setMatchedWith(partner);
       setPartnerId(partner.userId);
       setStatus("started");
@@ -91,7 +91,7 @@ function ChatWindow({ username }: any) {
     newSocket.on(
       "receive-message",
       ({ message, from }: { message: any; from: string }) => {
-        console.log(" message, from", message, from);
+        console.log("message, from", message, from);
         setMessages((prev) => [
           ...prev,
           {
@@ -103,7 +103,15 @@ function ChatWindow({ username }: any) {
       }
     );
 
+    // Cleanup function to remove listeners
     return () => {
+      newSocket.off("online-users");
+      newSocket.off("my-detail");
+      newSocket.off("waiting");
+      newSocket.off("matched-user");
+      newSocket.off("chat-started");
+      newSocket.off("partner-disconnected");
+      newSocket.off("receive-message");
       newSocket.disconnect();
     };
   }, [username]);
