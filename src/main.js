@@ -62,7 +62,7 @@ function capitalizeFirstLetters(str) {
 }
 function ChatWindow(_a) {
     var username = _a.username;
-    console.log("recieved is : username", username);
+    
     var _b = (0, react_1.useState)(null), socket = _b[0], setSocket = _b[1];
     var _c = (0, react_1.useState)([]), messages = _c[0], setMessages = _c[1];
     var _d = (0, react_1.useState)(""), inputMessage = _d[0], setInputMessage = _d[1];
@@ -89,20 +89,20 @@ function ChatWindow(_a) {
             setUsersOnline(users.length);
         });
         newSocket.on("waiting", function (message) {
-            console.log("message", message);
+            
             setStatus("waiting");
         });
         newSocket.on("matched-user", function (message) {
-            console.log("Matche duser is L: ", message);
+            
         });
         newSocket.on("chat-started", function (partner) {
-            console.log("partnechatr", partner);
+            
             setMatchedWith(partner);
             setPartnerId(partner.userId);
             setStatus("started");
         });
         newSocket.on("partner-disconnected", function (message) {
-            console.log("partner-disconnected", message);
+            
             setStatus("disconnected");
             // After a disconnection, automatically attempt to find a new match
             setMatchedWith(null); // Reset matched partner info

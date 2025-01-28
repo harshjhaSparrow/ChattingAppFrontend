@@ -13,7 +13,6 @@ import { io } from "socket.io-client";
 import LookingForPartner from "../public/LookingForPartner.gif";
 import CoffeeDonut from "../public/coffeedonutgif.gif";
 import "./App.css";
-import { Paperclip } from "lucide";
 
 function capitalizeFirstLetters(str: string) {
   const chars: any = str.split("");
@@ -28,7 +27,6 @@ function capitalizeFirstLetters(str: string) {
 }
 
 function ChatWindow({ username }: any) {
-  console.log("recieved is : username", username);
   const [socket, setSocket] = useState<any | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [inputMessage, setInputMessage] = useState<string>("");
@@ -61,28 +59,22 @@ function ChatWindow({ username }: any) {
 
     newSocket.on("my-detail", (user: any) => {
       setMyDetails(user);
-      console.log("useruseruseruseruser", user);
     });
 
     newSocket.on("waiting", (message: string) => {
-      console.log("message", message);
       setStatus("waiting");
     });
 
-    newSocket.on("matched-user", (message: string) => {
-      console.log("Matched user is L: ", message);
-    });
+    newSocket.on("matched-user", (message: string) => {});
 
     newSocket.on("chat-started", (partner: any) => {
-      console.log("partner chat", partner);
       setMatchedWith(partner);
-      console.log("partnepartnerr", partner);
+
       setPartnerId(partner.userId);
       setStatus("started");
     });
 
     newSocket.on("partner-disconnected", (message: any) => {
-      console.log("partner-disconnected", message);
       setStatus("disconnected");
       // After a disconnection, automatically attempt to find a new match
       setMatchedWith(null); // Reset matched partner info
@@ -93,7 +85,6 @@ function ChatWindow({ username }: any) {
     newSocket.on(
       "receive-message",
       ({ message, from }: { message: any; from: string }) => {
-        console.log("message, from", message, from);
         setMessages((prev) => [
           ...prev,
           {
@@ -134,8 +125,6 @@ function ChatWindow({ username }: any) {
         attachments: attachments, // Include attachments (media files)
         isTyping: false, // Set to false initially (can be used to show typing indicator)
       };
-
-      console.log("messagmessagee", message);
 
       // Emit the message via socket
       socket.emit("send-message", { message: message, to: partnerId });
@@ -199,7 +188,6 @@ function ChatWindow({ username }: any) {
   };
 
   function arrayBufferToBase64(arrayBuffer: any) {
-    console.log("arrayBuffearrayBufferr", arrayBuffer);
     // Convert ArrayBuffer to a Uint8Array
     const uint8Array = new Uint8Array(arrayBuffer);
 
@@ -211,7 +199,6 @@ function ChatWindow({ username }: any) {
 
     // Convert binary string to Base64
     const base64String = btoa(binaryString);
-    console.log("base64Strinbase64Stringg", base64String);
 
     // Return the Base64 string as a data URL for use in an <img> tag
     return `data:image/png;base64,${base64String}`;
@@ -291,81 +278,69 @@ function ChatWindow({ username }: any) {
                 <>
                   <div className="flex flex-col h-full overflow-y-auto">
                     <div>
-                      {messages?.map(
-                        (msg, index) => (
-                          console.log("msmsgg", {
-                            ...msg,
-                          }),
-                          (
-                            <div
-                              key={index}
-                              className={`mb-2 flex items-center ${
-                                msg.isOwnMessage
-                                  ? "justify-end"
-                                  : "justify-start"
-                              }`}
-                            >
-                              <div
-                                className={`rounded-md px-2 py-1 text-sm ${
-                                  msg.isOwnMessage
-                                    ? "bg-primaryTheme text-white ml-2"
-                                    : "bg-gray-200 text-gray-800 mr-2"
-                                }`}
-                              >
-                                <div className="flex justify-between items-center">
-                                  {/* User Name */}
-                                  <span className="font-bold">
-                                    {!msg.isOwnMessage &&
-                                      msg.user.replace(/[()]/g, "")}
-                                  </span>
-                                </div>
+                      {messages?.map((msg, index) => (
+                        <div
+                          key={index}
+                          className={`mb-2 flex items-center ${
+                            msg.isOwnMessage ? "justify-end" : "justify-start"
+                          }`}
+                        >
+                          <div
+                            className={`rounded-md px-2 py-1 text-sm ${
+                              msg.isOwnMessage
+                                ? "bg-primaryTheme text-white ml-2"
+                                : "bg-gray-200 text-gray-800 mr-2"
+                            }`}
+                          >
+                            <div className="flex justify-between items-center">
+                              {/* User Name */}
+                              <span className="font-bold">
+                                {!msg.isOwnMessage &&
+                                  msg.user.replace(/[()]/g, "")}
+                              </span>
+                            </div>
 
-                                {/* Message Text */}
-                                <div className="mt-1">
-                                  <span>{msg.text}</span>
-                                </div>
+                            {/* Message Text */}
+                            <div className="mt-1">
+                              <span>{msg.text}</span>
+                            </div>
 
-                                {msg?.otherMessageDetails?.attachments?.[0] && (
-                                  <div>
-                                    {msg.isOwnMessage ? (
-                                      <>Sent an Image</>
-                                    ) : (
-                                      <img
-                                        src={arrayBufferToBase64(
-                                          msg?.otherMessageDetails
-                                            ?.attachments?.[0]
-                                        )}
-                                        alt="Message Attachment"
-                                        className="max-w-[30%] h-auto rounded-md"
-                                      />
+                            {msg?.otherMessageDetails?.attachments?.[0] && (
+                              <div>
+                                {msg.isOwnMessage ? (
+                                  <>Sent an Image</>
+                                ) : (
+                                  <img
+                                    src={arrayBufferToBase64(
+                                      msg?.otherMessageDetails?.attachments?.[0]
                                     )}
-                                  </div>
-                                )}
-
-                                {/* Message Timestamp */}
-                                <div
-                                  className={`text-xs mt-1 ${
-                                    !msg.isOwnMessage
-                                      ? "text-black"
-                                      : "text-white"
-                                  }`}
-                                >
-                                  {new Date(
-                                    msg.otherMessageDetails.timestamp
-                                  ).toLocaleTimeString()}
-                                </div>
-
-                                {/* Optional: Display Typing Indicator */}
-                                {msg.otherMessageDetails?.isTyping && (
-                                  <div className="text-xs text-gray-500 mt-1">
-                                    User is typing...
-                                  </div>
+                                    alt="Message Attachment"
+                                    className="max-w-[30%] h-auto rounded-md"
+                                  />
                                 )}
                               </div>
+                            )}
+
+                            {/* Message Timestamp */}
+                            <div
+                              className={`text-xs mt-1 ${
+                                !msg.isOwnMessage ? "text-black" : "text-white"
+                              }`}
+                            >
+                              {new Date(
+                                msg.otherMessageDetails.timestamp
+                              ).toLocaleTimeString()}
                             </div>
-                          )
-                        )
-                      )}
+
+                            {/* Optional: Display Typing Indicator */}
+                            {msg.otherMessageDetails?.isTyping && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                User is typing...
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </>
@@ -438,13 +413,13 @@ function ChatWindow({ username }: any) {
         </div>
       )}
       {status === "started" && (
-        <div className="flex items-center justify-center">
+        <div className="flex md:justify-center justify-end my-2 items-center">
           <div>
             <button
               onClick={handleDisconnect}
               className="bg-primaryTheme text-white px-4 py-2 rounded-lg font-medium hover:bg-onHoveringPrimaryTheme transition-all"
             >
-              Disconnect & and Find Another
+              End & Find Another
             </button>
           </div>
         </div>
@@ -486,7 +461,7 @@ function UserRegistration() {
 
   return (
     <div className="flex flex-col items-center p-4 justify-center bg-white h-full w-full ">
-      <div className="text-2xl pl-8 py-4 left font-bold w-full text-center text-primaryTheme">
+      <div className="text-2xl pl-2 py-4 left font-bold w-full text-center text-primaryTheme">
         <div>Blind</div>
         <div></div>
       </div>

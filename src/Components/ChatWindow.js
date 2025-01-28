@@ -52,7 +52,7 @@ var ChatWindow = function (_a) {
             setUsersOnline(users.length);
         });
         newSocket.on("waiting", function (message) {
-            console.log("message", message);
+            
             setStatus("waiting");
         });
         newSocket.on("matched-user", function (message) {
@@ -63,7 +63,7 @@ var ChatWindow = function (_a) {
             setStatus("started");
         });
         newSocket.on("partner-disconnected", function (message) {
-            console.log("partner-disconnected", message);
+            
             setStatus("disconnected");
             // After a disconnection, automatically attempt to find a new match
             setMatchedWith(""); // Reset matched partner info

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from "react";
 import { io } from "socket.io-client";
@@ -19,7 +20,6 @@ const ChatWindow: React.FC<any> = ({ username }) => {
     });
 
     newSocket.on("waiting", (message: string) => {
-      console.log("message", message);
       setStatus("waiting");
     });
 
@@ -33,9 +33,8 @@ const ChatWindow: React.FC<any> = ({ username }) => {
     });
 
     newSocket.on("partner-disconnected", (message: any) => {
-      console.log("partner-disconnected", message);
       setStatus("disconnected");
-      // After a disconnection, automatically attempt to find a new match
+      // After a disconnection, automatically attempt to find a new match\
       setMatchedWith(""); // Reset matched partner info
       setMessages([]); // Clear message history
       setPartnerId(null); // Reset partner ID
