@@ -13,6 +13,7 @@ import { io } from "socket.io-client";
 import LookingForPartner from "../public/LookingForPartner.gif";
 import CoffeeDonut from "../public/coffeedonutgif.gif";
 import "./App.css";
+import { Paperclip } from "lucide";
 
 function capitalizeFirstLetters(str: string) {
   const chars: any = str.split("");
@@ -36,18 +37,18 @@ function ChatWindow({ username }: any) {
   const [usersOnline, setUsersOnline] = useState(0);
   const [matchedWith, setMatchedWith]: any = useState<any>(null);
   const [myDetails, setMyDetails] = useState<any>(null);
-  useEffect(() => {
-    const audio = new Audio("https://www.soundjay.com/button/beep-07.wav"); // 1-second beep sound
-    audio.play().catch((error) => {
-      console.error("Error playing audio:", error);
-    });
+  // useEffect(() => {
+  //   const audio = new Audio("https://www.soundjay.com/button/beep-07.wav"); // 1-second beep sound
+  //   audio.play().catch((error) => {
+  //     console.error("Error playing audio:", error);
+  //   });
 
-    // Optional cleanup
-    return () => {
-      audio.pause();
-      audio.currentTime = 0;
-    };
-  }, []);
+  //   // Optional cleanup
+  //   return () => {
+  //     audio.pause();
+  //     audio.currentTime = 0;
+  //   };
+  // }, []);
 
   useEffect(() => {
     const newSocket: any = io("http://localhost:3999/");
@@ -75,6 +76,7 @@ function ChatWindow({ username }: any) {
     newSocket.on("chat-started", (partner: any) => {
       console.log("partner chat", partner);
       setMatchedWith(partner);
+      console.log("partnepartnerr", partner);
       setPartnerId(partner.userId);
       setStatus("started");
     });
@@ -116,6 +118,8 @@ function ChatWindow({ username }: any) {
     };
   }, [username]);
 
+  // State to hold the media files
+  const [attachments, setAttachments] = useState([]);
   const handleSendMessage = () => {
     if (socket && partnerId && myDetails) {
       // Build the message object using myDetails
@@ -127,7 +131,7 @@ function ChatWindow({ username }: any) {
         messageType: "text", // Assuming it’s a text message for now, can be dynamic
         status: "sent", // Initially, set as "sent"
         isOwnMessage: true, // This is the logged-in user’s message
-        attachments: [], // Assuming no attachments for now, you can add media here
+        attachments: attachments, // Include attachments (media files)
         isTyping: false, // Set to false initially (can be used to show typing indicator)
       };
 
@@ -150,6 +154,16 @@ function ChatWindow({ username }: any) {
 
       // Clear the input field after sending
       setInputMessage("");
+      setAttachments([]); // Clear attachments after sending the message
+    }
+  };
+
+  // Handle file selection
+  const handleFileChange = (event: any) => {
+    const files = event.target.files;
+    if (files.length > 0) {
+      const fileArray: any = Array.from(files);
+      setAttachments(fileArray); // Save the selected files in the state
     }
   };
 
@@ -184,6 +198,25 @@ function ChatWindow({ username }: any) {
     });
   };
 
+  function arrayBufferToBase64(arrayBuffer: any) {
+    console.log("arrayBuffearrayBufferr", arrayBuffer);
+    // Convert ArrayBuffer to a Uint8Array
+    const uint8Array = new Uint8Array(arrayBuffer);
+
+    // Create a binary string from the uint8Array
+    let binaryString = "";
+    for (let i = 0; i < uint8Array.length; i++) {
+      binaryString += String.fromCharCode(uint8Array[i]);
+    }
+
+    // Convert binary string to Base64
+    const base64String = btoa(binaryString);
+    console.log("base64Strinbase64Stringg", base64String);
+
+    // Return the Base64 string as a data URL for use in an <img> tag
+    return `data:image/png;base64,${base64String}`;
+  }
+
   return (
     <div className="bg-white flex justify-between flex-col h-full rounded-lg w-full ">
       {status === "waiting" && (
@@ -193,10 +226,17 @@ function ChatWindow({ username }: any) {
       )}
       {matchedWith && status !== "waiting" && (
         <div className="text-lg text-center font-semibold text-primaryTheme mb-4">
-          You’ve matched with:{" "}
-          <span className="font-bold">
-            {capitalizeFirstLetters(matchedWith?.username)}
-          </span>{" "}
+          <div className="font-bold text-center flex justify-center items-center space-x-2">
+            <div className="flex items-center">
+              <div>
+                You’ve matched with:{" "}
+                {capitalizeFirstLetters(matchedWith?.username)}
+              </div>
+              <div className="ml-2">
+                <div className="h-2 w-2 rounded-full bg-green-500 inline-block"></div>
+              </div>
+            </div>
+          </div>
           –{" "}
           <span className="italic">
             Your conversation just got a whole lot more interesting!
@@ -249,11 +289,13 @@ function ChatWindow({ username }: any) {
                 </>
               ) : (
                 <>
-                  <div className="flex flex-col h-60 overflow-y-auto">
+                  <div className="flex flex-col h-full overflow-y-auto">
                     <div>
                       {messages?.map(
                         (msg, index) => (
-                          console.log("msmsgg", msg),
+                          console.log("msmsgg", {
+                            ...msg,
+                          }),
                           (
                             <div
                               key={index}
@@ -270,8 +312,55 @@ function ChatWindow({ username }: any) {
                                     : "bg-gray-200 text-gray-800 mr-2"
                                 }`}
                               >
-                                {/* <strong>{msg.user}:</strong>  */}
-                                <span>{msg.text}</span>
+                                <div className="flex justify-between items-center">
+                                  {/* User Name */}
+                                  <span className="font-bold">
+                                    {!msg.isOwnMessage &&
+                                      msg.user.replace(/[()]/g, "")}
+                                  </span>
+                                </div>
+
+                                {/* Message Text */}
+                                <div className="mt-1">
+                                  <span>{msg.text}</span>
+                                </div>
+
+                                {msg?.otherMessageDetails?.attachments?.[0] && (
+                                  <div>
+                                    {msg.isOwnMessage ? (
+                                      <>Sent an Image</>
+                                    ) : (
+                                      <img
+                                        src={arrayBufferToBase64(
+                                          msg?.otherMessageDetails
+                                            ?.attachments?.[0]
+                                        )}
+                                        alt="Message Attachment"
+                                        className="max-w-[30%] h-auto rounded-md"
+                                      />
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Message Timestamp */}
+                                <div
+                                  className={`text-xs mt-1 ${
+                                    !msg.isOwnMessage
+                                      ? "text-black"
+                                      : "text-white"
+                                  }`}
+                                >
+                                  {new Date(
+                                    msg.otherMessageDetails.timestamp
+                                  ).toLocaleTimeString()}
+                                </div>
+
+                                {/* Optional: Display Typing Indicator */}
+                                {msg.otherMessageDetails?.isTyping && (
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    User is typing...
+                                  </div>
+                                )}
                               </div>
                             </div>
                           )
@@ -287,6 +376,7 @@ function ChatWindow({ username }: any) {
       )}
       {status === "started" && (
         <div className="input-container flex items-center gap-2 md:mb-4 mb-0">
+          {/* Text input */}
           <input
             type="text"
             value={inputMessage}
@@ -302,11 +392,45 @@ function ChatWindow({ username }: any) {
             placeholder="Type your message..."
             className="flex-1 border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-primaryTheme"
           />
+
+          {/* File upload button */}
+          <label htmlFor="file-upload" className="cursor-pointer">
+            <span className="material-icons active:mt-1">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="gray"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                className="lucide lucide-paperclip"
+              >
+                <path d="M13.234 20.252 21 12.3" />
+                <path d="m16 6-8.414 8.586a2 2 0 0 0 0 2.828 2 2 0 0 0 2.828 0l8.414-8.586a4 4 0 0 0 0-5.656 4 4 0 0 0-5.656 0l-8.415 8.585a6 6 0 1 0 8.486 8.486" />
+              </svg>
+            </span>{" "}
+            {/* You can use any icon here */}
+          </label>
+          <input
+            id="file-upload"
+            type="file"
+            multiple
+            onChange={handleFileChange}
+            accept="image/*,video/*"
+            className="hidden active:mt-1" // Hide the default file input
+          />
+
+          {/* Send button */}
           <button
             onClick={handleSendMessage}
-            disabled={!inputMessage.trim()}
+            disabled={!inputMessage.trim() && attachments.length === 0}
             className={`bg-primaryTheme text-white px-4 py-2 rounded-lg font-medium hover:bg-onHoveringPrimaryTheme transition-all ${
-              !inputMessage.trim() ? "opacity-50 cursor-not-allowed" : ""
+              !inputMessage.trim() && attachments.length === 0
+                ? "opacity-50 cursor-not-allowed"
+                : ""
             }`}
           >
             Send
