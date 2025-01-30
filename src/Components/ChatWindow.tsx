@@ -11,7 +11,7 @@ const ChatWindow: React.FC<any> = ({ username }) => {
   const [usersOnline, setUsersOnline] = useState(0);
   const [matchedWith, setMatchedWith] = useState<string>("");
   useEffect(() => {
-    const newSocket: any = io("http://localhost:3999/");
+    const newSocket: any = io("https://chattingapp-2-o3ry.onrender.com/");
     setSocket(newSocket);
     newSocket.emit("register-user", username);
 

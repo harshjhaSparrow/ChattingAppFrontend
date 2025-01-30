@@ -35,21 +35,10 @@ function ChatWindow({ username }: any) {
   const [usersOnline, setUsersOnline] = useState(0);
   const [matchedWith, setMatchedWith]: any = useState<any>(null);
   const [myDetails, setMyDetails] = useState<any>(null);
-  // useEffect(() => {
-  //   const audio = new Audio("https://www.soundjay.com/button/beep-07.wav"); // 1-second beep sound
-  //   audio.play().catch((error) => {
-  //     console.error("Error playing audio:", error);
-  //   });
 
-  //   // Optional cleanup
-  //   return () => {
-  //     audio.pause();
-  //     audio.currentTime = 0;
-  //   };
-  // }, []);
 
   useEffect(() => {
-    const newSocket: any = io("http://localhost:3999/");
+    const newSocket: any = io("https://chattingapp-2-o3ry.onrender.com/");
     setSocket(newSocket);
     newSocket.emit("register-user", username);
 
@@ -232,7 +221,7 @@ function ChatWindow({ username }: any) {
       )}
       {status === "disconnected" ? (
         <>
-          <div>
+          <div className="text-center">
             {matchedWith?.userName}Partner has disconnected. We are constantly
             trying to match you up with someone else.
           </div>
@@ -289,7 +278,7 @@ function ChatWindow({ username }: any) {
                             className={`rounded-md px-2 py-1 text-sm ${
                               msg.isOwnMessage
                                 ? "bg-primaryTheme text-white ml-2"
-                                : "bg-gray-200 text-gray-800 mr-2"
+                                : "bg-gray-200 w-auto text-gray-800 mr-2"
                             }`}
                           >
                             <div className="flex justify-between items-center">
@@ -315,7 +304,7 @@ function ChatWindow({ username }: any) {
                                       msg?.otherMessageDetails?.attachments?.[0]
                                     )}
                                     alt="Message Attachment"
-                                    className="max-w-[30%] h-auto rounded-md"
+                                    className="max-w-[80%] h-auto rounded-md"
                                   />
                                 )}
                               </div>
