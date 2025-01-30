@@ -10,6 +10,7 @@ import {
 } from "react";
 import { createRoot } from "react-dom/client";
 import { io } from "socket.io-client";
+import heart from "../public/Beatinghearts.gif";
 import LookingForPartner from "../public/LookingForPartner.gif";
 import CoffeeDonut from "../public/coffeedonutgif.gif";
 import "./App.css";
@@ -35,7 +36,6 @@ function ChatWindow({ username }: any) {
   const [usersOnline, setUsersOnline] = useState(0);
   const [matchedWith, setMatchedWith]: any = useState<any>(null);
   const [myDetails, setMyDetails] = useState<any>(null);
-
 
   useEffect(() => {
     const newSocket: any = io("https://chattingapp-2-o3ry.onrender.com/");
@@ -224,6 +224,12 @@ function ChatWindow({ username }: any) {
           <div className="text-center">
             {matchedWith?.userName}Partner has disconnected. We are constantly
             trying to match you up with someone else.
+          </div>
+
+          <div className="flex items-center h-full w-full justify-center mt-4">
+            <div>
+              <img src={heart} className="w-[200px] h-[200px]" alt="" />
+            </div>
           </div>
           <button
             onClick={handleReconnect}
