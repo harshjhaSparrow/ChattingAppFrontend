@@ -52,8 +52,8 @@ function ChatWindow({ username }: any) {
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // const newSocket: any = io("https://chattingapp-2-o3ry.onrender.com/");
-    const newSocket: any = io("http://localhost:3999/");
+    const newSocket: any = io("https://chattingapp-2-o3ry.onrender.com/");
+    //const newSocket: any = io("http://localhost:3999/");
     setSocket(newSocket);
     newSocket.emit("register-user", username);
 
