@@ -2,6 +2,14 @@
 /* eslint-disable react-refresh/only-export-components */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
+  ChakraProvider,
+  Drawer,
+  DrawerBody,
+  DrawerContent,
+  DrawerOverlay,
+  Icon,
+} from "@chakra-ui/react";
+import {
   default as React,
   StrictMode,
   useEffect,
@@ -9,6 +17,7 @@ import {
   useState,
 } from "react";
 import { createRoot } from "react-dom/client";
+import { CiMenuBurger } from "react-icons/ci";
 import { io } from "socket.io-client";
 import heart from "../public/Beatinghearts.gif";
 import LookingForPartner from "../public/LookingForPartner.gif";
@@ -36,9 +45,16 @@ function ChatWindow({ username }: any) {
   const [usersOnline, setUsersOnline] = useState(0);
   const [matchedWith, setMatchedWith]: any = useState<any>(null);
   const [myDetails, setMyDetails] = useState<any>(null);
+  const [userTyping, setUserTyping] = useState<any>(false);
+  const [partnerIsTyping, setpartnerIsTyping] = useState<any>(false);
+  const [iamTyping, setIamTyping] = useState<any>(false);
+  // State to hold the media files
+  const [attachments, setAttachments] = useState([]);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    const newSocket: any = io("https://chattingapp-2-o3ry.onrender.com/");
+    // const newSocket: any = io("https://chattingapp-2-o3ry.onrender.com/");
+    const newSocket: any = io("http://localhost:3999/");
     setSocket(newSocket);
     newSocket.emit("register-user", username);
 
@@ -54,11 +70,21 @@ function ChatWindow({ username }: any) {
       setStatus("waiting");
     });
 
+    // Listen for typing events from the server
+    newSocket.on("user-typing", (message: any) => {
+      console.log("Partner is typing:", message);
+      setpartnerIsTyping(true);
+    });
+
+    newSocket.on("user-stopped-typing", (message: any) => {
+      console.log("Partner stopped typing:", message);
+      setpartnerIsTyping(false);
+    });
+
     newSocket.on("matched-user", (message: string) => {});
 
     newSocket.on("chat-started", (partner: any) => {
       setMatchedWith(partner);
-
       setPartnerId(partner.userId);
       setStatus("started");
     });
@@ -94,12 +120,12 @@ function ChatWindow({ username }: any) {
       newSocket.off("chat-started");
       newSocket.off("partner-disconnected");
       newSocket.off("receive-message");
+      newSocket.off("user-typing");
+      newSocket.off("user-stopped-typing");
       newSocket.disconnect();
     };
   }, [username]);
 
-  // State to hold the media files
-  const [attachments, setAttachments] = useState([]);
   const handleSendMessage = () => {
     if (socket && partnerId && myDetails) {
       // Build the message object using myDetails
@@ -169,11 +195,25 @@ function ChatWindow({ username }: any) {
     }
   };
 
+  // This function is called when the user is typing
   const handleTyping = () => {
-    socket.emit("user-typing", {
-      username, // Your username
-      to: partnerId, // Recipient's ID
-    });
+    setIamTyping(true); // You are typing
+    console.log("User is typing...");
+
+    socket.emit("user-typing", { username, to: partnerId });
+
+    // Clear any previous timeout to reset the delay
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Set a timeout to detect when user stops typing
+    typingTimeoutRef.current = setTimeout(() => {
+      console.log("User stopped typing...");
+      setIamTyping(false); // You stopped typing
+
+      socket.emit("user-stopped-typing", { username, to: partnerId });
+    }, 2000); // User stops typing after 2 seconds of inactivity
   };
 
   function arrayBufferToBase64(arrayBuffer: any) {
@@ -273,6 +313,7 @@ function ChatWindow({ username }: any) {
                 <>
                   <div className="flex flex-col h-full overflow-y-auto">
                     <div>
+                      <div> </div>
                       {messages?.map((msg, index) => (
                         <div
                           key={index}
@@ -328,14 +369,14 @@ function ChatWindow({ username }: any) {
                             </div>
 
                             {/* Optional: Display Typing Indicator */}
-                            {msg.otherMessageDetails?.isTyping && (
-                              <div className="text-xs text-gray-500 mt-1">
-                                User is typing...
-                              </div>
-                            )}
                           </div>
                         </div>
                       ))}
+                      {partnerIsTyping && !iamTyping && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          User is typing...
+                        </div>
+                      )}
                     </div>
                   </div>
                 </>
@@ -351,8 +392,8 @@ function ChatWindow({ username }: any) {
             type="text"
             value={inputMessage}
             onChange={(e) => {
-              setInputMessage(e.target.value);
               handleTyping();
+              setInputMessage(e.target.value);
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
@@ -438,6 +479,10 @@ function UserRegistration() {
   const [error, setError] = useState<string>("");
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Side Drawer State
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const toggleDrawer = () => setIsDrawerOpen(!isDrawerOpen);
+
   const handleRegister = () => {
     if (username.trim()) {
       setIsRegistered(true);
@@ -455,11 +500,39 @@ function UserRegistration() {
   };
 
   return (
-    <div className="flex flex-col items-center p-4 justify-center bg-white h-full w-full ">
-      <div className="text-2xl pl-2 py-4 left font-bold w-full text-center text-primaryTheme">
-        <div>Blind</div>
-        <div></div>
+    <div className="flex flex-col items-center p-4 justify-center bg-white h-full w-full">
+      {/* Drawer Toggle Button */}
+
+      <div className="w-full ">
+        <Icon
+          onClick={toggleDrawer}
+          fontSize="2xl"
+          className="cursor-progress"
+          color="pink.700"
+        >
+          <CiMenuBurger />
+        </Icon>
       </div>
+
+      {/* Side Drawer */}
+      <Drawer isOpen={isDrawerOpen} placement="left" onClose={toggleDrawer}>
+        <DrawerOverlay />
+        <DrawerContent className="bg-gray-900 text-white">
+          <DrawerBody className="p-6">
+            <ul className="space-y-3">
+              <li className="cursor-pointer hover:underline">Home</li>
+              <li className="cursor-pointer hover:underline">Settings</li>
+              <li className="cursor-pointer hover:underline">Help</li>
+            </ul>
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Main Content */}
+      <div className="text-2xl pl-2 py-4 font-bold w-full text-center text-primaryTheme">
+        <div>Blind</div>
+      </div>
+
       {!isRegistered ? (
         <div className="w-full h-full py-6 px-4 flex flex-col justify-between">
           <div className="text-xl font-semibold text-primaryTheme text-center mb-4">
@@ -470,26 +543,18 @@ function UserRegistration() {
               Chat Guidelines
             </h2>
             <ul className="space-y-3 text-gray-700 text-base">
-              <li className="flex items-start">
-                <span className="mr-2 text-blue-500 font-semibold">•</span> Be
-                respectful and kind to others.
-              </li>
-              <li className="flex items-start">
-                <span className="mr-2 text-blue-500 font-semibold">•</span> Do
-                not share personal information or photos.
-              </li>
-              <li className="flex items-start">
-                <span className="mr-2 text-blue-500 font-semibold">•</span> No
-                harassment or hate speech allowed.
-              </li>
-              <li className="flex items-start">
-                <span className="mr-2 text-blue-500 font-semibold">•</span> Keep
-                conversations family-friendly.
-              </li>
-              <li className="flex items-start">
-                <span className="mr-2 text-blue-500 font-semibold">•</span> If
-                you feel uncomfortable, leave the chat immediately.
-              </li>
+              {[
+                "Be respectful and kind to others.",
+                "Do not share personal information or photos.",
+                "No harassment or hate speech allowed.",
+                "Keep conversations family-friendly.",
+                "If you feel uncomfortable, leave the chat immediately.",
+              ].map((text, index) => (
+                <li key={index} className="flex items-start">
+                  <span className="mr-2 text-blue-500 font-semibold">•</span>{" "}
+                  {text}
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -522,14 +587,16 @@ function UserRegistration() {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <div className="h-screen overflow-hidden w-screen">
-      <div>
-        <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center">
-          <div className="bg-white shadow-lg rounded-lg w-full h-screen ">
-            <UserRegistration />
+    <ChakraProvider>
+      <div className="h-screen overflow-hidden w-screen">
+        <div>
+          <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center">
+            <div className="bg-white shadow-lg rounded-lg w-full h-screen ">
+              <UserRegistration />
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </ChakraProvider>
   </StrictMode>
 );

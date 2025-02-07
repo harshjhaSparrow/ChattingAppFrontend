@@ -1,10 +1,6 @@
 import React from "react";
 import UserRegistration from "./Components/UserRegistration";
 
-
-
-
-
 export const App = () => {
   return (
     <div>

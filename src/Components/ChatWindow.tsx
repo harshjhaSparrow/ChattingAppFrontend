@@ -18,7 +18,8 @@ export const ChatWindow = ({ username }: any) => {
   const [myDetails, setMyDetails] = useState<any>(null);
 
   useEffect(() => {
-    const newSocket: any = io("https://chattingapp-2-o3ry.onrender.com/");
+    //const newSocket: any = io("https://chattingapp-2-o3ry.onrender.com/");
+    const newSocket: any = io("http://localhost:3999/");
     setSocket(newSocket);
     newSocket.emit("register-user", username);
 
@@ -413,4 +414,3 @@ export const ChatWindow = ({ username }: any) => {
 };
 
 export default ChatWindow;
-
