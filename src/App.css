@@ -38,3 +38,17 @@
 .animate-typing {
   animation: typing 1.8s infinite ease-in-out;
 }
+
+.hidden-scrollbar {
+  overflow: scroll;
+}
+
+/* Hide scrollbar but keep scrolling functional */
+.hidden-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hidden-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
