@@ -72,12 +72,10 @@ function ChatWindow({ username }: any) {
 
     // Listen for typing events from the server
     newSocket.on("user-typing", (message: any) => {
-      console.log("Partner is typing:", message);
       setpartnerIsTyping(true);
     });
 
     newSocket.on("user-stopped-typing", (message: any) => {
-      console.log("Partner stopped typing:", message);
       setpartnerIsTyping(false);
     });
 
@@ -198,8 +196,6 @@ function ChatWindow({ username }: any) {
   // This function is called when the user is typing
   const handleTyping = () => {
     setIamTyping(true); // You are typing
-    console.log("User is typing...");
-
     socket.emit("user-typing", { username, to: partnerId });
 
     // Clear any previous timeout to reset the delay
@@ -209,7 +205,6 @@ function ChatWindow({ username }: any) {
 
     // Set a timeout to detect when user stops typing
     typingTimeoutRef.current = setTimeout(() => {
-      console.log("User stopped typing...");
       setIamTyping(false); // You stopped typing
 
       socket.emit("user-stopped-typing", { username, to: partnerId });
@@ -374,7 +369,13 @@ function ChatWindow({ username }: any) {
                       ))}
                       {partnerIsTyping && !iamTyping && (
                         <div className="text-xs text-gray-500 mt-1">
-                          User is typing...
+                          <div className="bg-green-100 px-3 py-2 rounded-2xl rounded-bl-sm inline-block">
+                            <div className="flex items-center h-2">
+                              <div className="dot bg-green-600 w-1 h-1 rounded-full animate-typing"></div>
+                              <div className="dot bg-green-600 w-1 h-1 rounded-full animate-typing [animation-delay:200ms]"></div>
+                              <div className="dot bg-green-600 w-1 h-1 rounded-full animate-typing [animation-delay:400ms]"></div>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>

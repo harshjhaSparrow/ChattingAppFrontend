@@ -19,3 +19,22 @@
   justify-content: flex-start;
   align-items: center;
 }
+
+@keyframes typing {
+  0% {
+    transform: translateY(0px);
+    background-color: #6cad96;
+  }
+  28% {
+    transform: translateY(-3px);
+    background-color: #9ecab9;
+  }
+  44% {
+    transform: translateY(0px);
+    background-color: #b5d9cb;
+  }
+}
+
+.animate-typing {
+  animation: typing 1.8s infinite ease-in-out;
+}
