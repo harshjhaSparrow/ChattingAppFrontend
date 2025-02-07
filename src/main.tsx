@@ -24,7 +24,6 @@ import heart from "../public/Beatinghearts.gif";
 import LookingForPartner from "../public/LookingForPartner.gif";
 import CoffeeDonut from "../public/coffeedonutgif.gif";
 import "./App.css";
-import { SendHorizontal } from "lucide";
 
 function capitalizeFirstLetters(str: string) {
   const chars: any = str.split("");
