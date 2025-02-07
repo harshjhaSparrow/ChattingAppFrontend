@@ -368,7 +368,7 @@ function ChatWindow({ username }: any) {
                       ))}
                       {partnerIsTyping && !iamTyping && (
                         <div className="text-xs text-gray-500 mt-1">
-                          <div className="bg-green-100 px-3 py-2 rounded-2xl rounded-bl-sm inline-block">
+                          <div className="bg-gray-200 px-3 py-2 rounded-2xl rounded-bl-sm inline-block">
                             <div className="flex items-center h-2">
                               <div className="dot bg-primaryTheme w-1 h-1 rounded-full animate-typing"></div>
                               <div className="dot bg-primaryTheme w-1 h-1 rounded-full animate-typing [animation-delay:200ms]"></div>
@@ -386,23 +386,27 @@ function ChatWindow({ username }: any) {
         </>
       )}
       {status === "started" && (
-        <div className="input-container flex items-center gap-2 md:mb-4 mb-0">
+        <div className="input-container hidden-scrollbar p-2 flex items-center gap-2 md:mb-4 mb-0">
           {/* Text input */}
-          <input
-            type="text"
+          <textarea
             value={inputMessage}
             onChange={(e) => {
               handleTyping();
               setInputMessage(e.target.value);
+              e.target.style.height = "auto"; // Reset height
+              e.target.style.height = e.target.scrollHeight + "px"; // Auto-expand
             }}
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault(); // Prevent new line
                 handleSendMessage();
               }
             }}
             placeholder="Type your message..."
-            className="flex-1 border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-primaryTheme"
+            className="w-full resize-none border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-primaryTheme"
+            rows={1}
           />
+
           {/* File upload button */}
           <label htmlFor="file-upload" className="cursor-pointer">
             <span className="material-icons active:mt-1">

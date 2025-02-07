@@ -113,17 +113,7 @@ function ChatWindow(_a) {
   var _h = (0, react_1.useState)(null),
     matchedWith = _h[0],
     setMatchedWith = _h[1];
-  (0, react_1.useEffect)(function () {
-    // var audio = new Audio("https://www.soundjay.com/button/beep-07.wav"); // 1-second beep sound
-    // audio.play().catch(function (error) {
-    //     console.error("Error playing audio:", error);
-    // });
-    // Optional cleanup
-    // return function () {
-    //     audio.pause();
-    //     audio.currentTime = 0;
-    // };
-  }, []);
+  (0, react_1.useEffect)(function () {}, []);
   (0, react_1.useEffect)(
     function () {
       var newSocket = (0, socket_io_client_1.io)("http://localhost:3999/");
