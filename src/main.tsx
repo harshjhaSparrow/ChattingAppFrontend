@@ -2,6 +2,7 @@
 /* eslint-disable react-refresh/only-export-components */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
+  Button,
   ChakraProvider,
   Drawer,
   DrawerBody,
@@ -23,6 +24,7 @@ import heart from "../public/Beatinghearts.gif";
 import LookingForPartner from "../public/LookingForPartner.gif";
 import CoffeeDonut from "../public/coffeedonutgif.gif";
 import "./App.css";
+import { SendHorizontal } from "lucide";
 
 function capitalizeFirstLetters(str: string) {
   const chars: any = str.split("");
@@ -45,10 +47,8 @@ function ChatWindow({ username }: any) {
   const [usersOnline, setUsersOnline] = useState(0);
   const [matchedWith, setMatchedWith]: any = useState<any>(null);
   const [myDetails, setMyDetails] = useState<any>(null);
-  const [userTyping, setUserTyping] = useState<any>(false);
   const [partnerIsTyping, setpartnerIsTyping] = useState<any>(false);
   const [iamTyping, setIamTyping] = useState<any>(false);
-  // State to hold the media files
   const [attachments, setAttachments] = useState([]);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -371,9 +371,9 @@ function ChatWindow({ username }: any) {
                         <div className="text-xs text-gray-500 mt-1">
                           <div className="bg-green-100 px-3 py-2 rounded-2xl rounded-bl-sm inline-block">
                             <div className="flex items-center h-2">
-                              <div className="dot bg-green-600 w-1 h-1 rounded-full animate-typing"></div>
-                              <div className="dot bg-green-600 w-1 h-1 rounded-full animate-typing [animation-delay:200ms]"></div>
-                              <div className="dot bg-green-600 w-1 h-1 rounded-full animate-typing [animation-delay:400ms]"></div>
+                              <div className="dot bg-primaryTheme w-1 h-1 rounded-full animate-typing"></div>
+                              <div className="dot bg-primaryTheme w-1 h-1 rounded-full animate-typing [animation-delay:200ms]"></div>
+                              <div className="dot bg-primaryTheme w-1 h-1 rounded-full animate-typing [animation-delay:400ms]"></div>
                             </div>
                           </div>
                         </div>
@@ -404,7 +404,6 @@ function ChatWindow({ username }: any) {
             placeholder="Type your message..."
             className="flex-1 border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-primaryTheme"
           />
-
           {/* File upload button */}
           <label htmlFor="file-upload" className="cursor-pointer">
             <span className="material-icons active:mt-1">
@@ -434,19 +433,32 @@ function ChatWindow({ username }: any) {
             accept="image/*,video/*"
             className="hidden active:mt-1" // Hide the default file input
           />
-
           {/* Send button */}
-          <button
+          <Button
             onClick={handleSendMessage}
             disabled={!inputMessage.trim() && attachments.length === 0}
-            className={`bg-primaryTheme text-white px-4 py-2 rounded-lg font-medium hover:bg-onHoveringPrimaryTheme transition-all ${
+            className={`bg-primaryTheme text-white p-2 rounded-full font-medium hover:bg-onHoveringPrimaryTheme transition-all ${
               !inputMessage.trim() && attachments.length === 0
                 ? "opacity-50 cursor-not-allowed"
                 : ""
             }`}
           >
-            Send
-          </button>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              className="lucide lucide-send-horizontal"
+            >
+              <path d="M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z" />
+              <path d="M6 12h16" />
+            </svg>
+          </Button>
         </div>
       )}
       {status === "started" && (

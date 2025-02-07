@@ -23,15 +23,15 @@
 @keyframes typing {
   0% {
     transform: translateY(0px);
-    background-color: #6cad96;
+    background-color: rgb(168 41 90 / var(--tw-bg-opacity, 1));
   }
   28% {
     transform: translateY(-3px);
-    background-color: #9ecab9;
+    background-color: rgb(168 41 90 / var(--tw-bg-opacity, 1));
   }
   44% {
     transform: translateY(0px);
-    background-color: #b5d9cb;
+    background-color: rgb(168 41 90 / var(--tw-bg-opacity, 1));
   }
 }
 
