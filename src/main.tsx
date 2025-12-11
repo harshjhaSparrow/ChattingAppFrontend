@@ -4,11 +4,7 @@
 import {
   Button,
   ChakraProvider,
-  Drawer,
-  DrawerBody,
-  DrawerContent,
-  DrawerOverlay,
-  Icon,
+  Icon
 } from "@chakra-ui/react";
 import {
   default as React,
@@ -24,6 +20,7 @@ import heart from "../public/Beatinghearts.gif";
 import LookingForPartner from "../public/LookingForPartner.gif";
 import CoffeeDonut from "../public/coffeedonutgif.gif";
 import "./App.css";
+import SidebarDrawer from "./Components/SidebarDrawer";
 
 function capitalizeFirstLetters(str: string) {
   const chars: any = str.split("");
@@ -162,6 +159,7 @@ function ChatWindow({ username }: any) {
   // Handle file selection
   const handleFileChange = (event: any) => {
     const files = event.target.files;
+    console.log("filesfilesfiles",files)
     if (files.length > 0) {
       const fileArray: any = Array.from(files);
       setAttachments(fileArray); // Save the selected files in the state
@@ -531,18 +529,11 @@ function UserRegistration() {
       </div>
 
       {/* Side Drawer */}
-      <Drawer isOpen={isDrawerOpen} placement="left" onClose={toggleDrawer}>
-        <DrawerOverlay />
-        <DrawerContent className="bg-gray-900 text-white">
-          <DrawerBody className="p-6">
-            <ul className="space-y-3">
-              <li className="cursor-pointer hover:underline">Home</li>
-              <li className="cursor-pointer hover:underline">Settings</li>
-              <li className="cursor-pointer hover:underline">Help</li>
-            </ul>
-          </DrawerBody>
-        </DrawerContent>
-      </Drawer>
+      <SidebarDrawer
+        isOpen={isDrawerOpen}
+        onClose={toggleDrawer}
+        username="Harsh"
+      />
 
       {/* Main Content */}
       <div className="text-2xl pl-2 py-4 font-bold w-full text-center text-primaryTheme">

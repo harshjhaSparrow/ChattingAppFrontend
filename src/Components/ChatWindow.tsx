@@ -1,414 +1,403 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from "react";
-import { io } from "socket.io-client";
-import { capitalizeFirstLetters } from "~/Utils/Commonfunctions";
-import heart from "../public/Beatinghearts.gif";
-import LookingForPartner from "../public/LookingForPartner.gif";
-import CoffeeDonut from "../public/coffeedonutgif.gif";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* ChatWindow.tsx */
+import React, { useEffect, useRef, useState } from "react";
+import { io, Socket } from "socket.io-client";
 
-export const ChatWindow = ({ username }: any) => {
-  const [socket, setSocket] = useState<any | null>(null);
-  const [messages, setMessages] = useState<any[]>([]);
+// small unique id generator for client messages
+const genClientId = () => `cmsg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
+type MessageItem = {
+  clientMessageId?: string | null; // client-side temporary id
+  id?: string | null; // server message id
+  user: string;
+  text?: string;
+  isOwnMessage?: boolean;
+  timestamp?: string | Date;
+  status?: "sending" | "saved" | "failed" | "delivered";
+  sessionId?: string | null;
+  type?: "text" | "image";
+  imageDataUrl?: string | null; // for optimistic local image or for received image
+};
+
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2MB
+
+const ChatWindow: React.FC<{ username: string }> = ({ username }) => {
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const socketRef = useRef<Socket | null>(null);
+
+  const [messages, setMessages] = useState<MessageItem[]>([]);
   const [inputMessage, setInputMessage] = useState<string>("");
-  const [partnerId, setPartnerId] = useState<string | null>(null);
-  const [status, setStatus] = useState<string>("connecting");
-  const [usersOnline, setUsersOnline] = useState(0);
-  const [matchedWith, setMatchedWith]: any = useState<any>(null);
-  const [myDetails, setMyDetails] = useState<any>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [status, setStatus] = useState<"connecting" | "waiting" | "started" | "disconnected">("connecting");
+  const [myId, setMyId] = useState<string | null>(null);
+  const [partnerIsTyping, setPartnerIsTyping] = useState(false);
+
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const typingTimeoutRef = useRef<any>(null);
 
   useEffect(() => {
-    const newSocket: any = io("https://chattingapp-2-o3ry.onrender.com/");
-    //const newSocket: any = io("http://localhost:3999/");
-    setSocket(newSocket);
-    newSocket.emit("register-user", username);
+    const LOCAL = "http://localhost:3000";
+    const ORIGIN = (window.location && window.location.origin) || LOCAL;
+    const SOCKET_URL = LOCAL || ORIGIN;
 
-    newSocket.on("online-users", (users: string[]) => {
-      setUsersOnline(users.length);
+    const s = io(SOCKET_URL, {
+      transports: ["websocket", "polling"],
+      reconnectionAttempts: 5,
     });
 
-    newSocket.on("my-detail", (user: any) => {
-      setMyDetails(user);
-    });
+    setSocket(s);
+    socketRef.current = s;
 
-    newSocket.on("waiting", (message: string) => {
+    s.on("connect", () => {
+      console.log("connected", s.id);
+      s.emit("register-user", username);
       setStatus("waiting");
     });
 
-    newSocket.on("matched-user", (message: string) => {});
+    s.on("register-success", (payload: any) => {
+      setMyId(payload.userId);
+    });
 
-    newSocket.on("chat-started", (partner: any) => {
-      setMatchedWith(partner);
+    s.on("waiting", () => {
+      setStatus("waiting");
+      setSessionId(null);
+    });
 
-      setPartnerId(partner.userId);
+    s.on("chat-started", (payload: any) => {
+      setSessionId(payload.sessionId || null);
       setStatus("started");
+      setMessages([]);
     });
 
-    newSocket.on("partner-disconnected", (message: any) => {
-      setStatus("disconnected");
-      // After a disconnection, automatically attempt to find a new match
-      setMatchedWith(null); // Reset matched partner info
-      setMessages([]); // Clear message history
-      setPartnerId(null); // Reset partner ID
+    s.on("partner-typing", () => {
+      setPartnerIsTyping(true);
+    });
+    s.on("partner-stopped-typing", () => {
+      setPartnerIsTyping(false);
     });
 
-    newSocket.on(
-      "receive-message",
-      ({ message, from }: { message: any; from: string }) => {
-        setMessages((prev) => [
-          ...prev,
-          {
-            user: `(${from})`,
-            text: message?.text,
-            otherMessageDetails: message,
-          },
-        ]);
+    // receive-message: { messageId, from, to, content, type, timestamp, sessionId, clientMessageId? }
+    s.on("receive-message", (payload: any) => {
+      try {
+        const isOwn = String(payload.from) === String(myId);
+        // if server included clientMessageId, try to merge with optimistic message
+        if (payload.clientMessageId) {
+          setMessages((prev) => {
+            const copy = [...prev];
+            const idx = copy.findIndex((m) => m.clientMessageId === payload.clientMessageId);
+            if (idx !== -1) {
+              // update the optimistic message into saved message
+              copy[idx] = {
+                ...copy[idx],
+                id: payload.messageId ?? copy[idx].id,
+                status: "saved",
+                timestamp: payload.timestamp ?? copy[idx].timestamp,
+                type: payload.type || copy[idx].type,
+                imageDataUrl: payload.type === "image" ? payload.content : copy[idx].imageDataUrl,
+                text: payload.type === "text" ? payload.content : copy[idx].text,
+              };
+              return copy;
+            } else {
+              // no optimistic message found, push a new message
+              const msg: MessageItem = {
+                id: payload.messageId ?? null,
+                user: isOwn ? username || "Me" : "Partner",
+                text: payload.type === "text" ? payload.content : undefined,
+                isOwnMessage: isOwn,
+                timestamp: payload.timestamp ?? new Date().toISOString(),
+                status: "saved",
+                sessionId: payload.sessionId,
+                type: payload.type || "text",
+                imageDataUrl: payload.type === "image" ? payload.content : null,
+              };
+              return [...copy, msg];
+            }
+          });
+        } else {
+          // no clientMessageId: simply add message if it's not duplicate
+          setMessages((prev) => {
+            // avoid exact duplicates by messageId if exists
+            if (payload.messageId && prev.some((m) => m.id === payload.messageId)) return prev;
+            const msg: MessageItem = {
+              id: payload.messageId ?? null,
+              user: isOwn ? username || "Me" : "Partner",
+              text: payload.type === "text" ? payload.content : undefined,
+              isOwnMessage: isOwn,
+              timestamp: payload.timestamp ?? new Date().toISOString(),
+              status: "saved",
+              sessionId: payload.sessionId,
+              type: payload.type || "text",
+              imageDataUrl: payload.type === "image" ? payload.content : null,
+            };
+            return [...prev, msg];
+          });
+        }
+      } catch (err) {
+        console.error("receive-message handling error", err);
       }
-    );
+    });
 
-    // Cleanup function to remove listeners
+    // message-saved: { messageId, timestamp, clientMessageId? }
+    s.on("message-saved", (ack: any) => {
+      setMessages((prev) => {
+        const copy = [...prev];
+        // try to match by clientMessageId if provided
+        if (ack?.clientMessageId) {
+          const idx = copy.findIndex((m) => m.clientMessageId === ack.clientMessageId);
+          if (idx !== -1) {
+            copy[idx] = {
+              ...copy[idx],
+              id: ack.messageId ?? copy[idx].id,
+              status: "saved",
+              timestamp: ack.timestamp ?? copy[idx].timestamp,
+            };
+            return copy;
+          }
+        }
+        // fallback: find last sending message and mark saved
+        for (let i = copy.length - 1; i >= 0; i--) {
+          if (copy[i].isOwnMessage && copy[i].status === "sending") {
+            copy[i] = { ...copy[i], id: ack.messageId ?? copy[i].id, status: "saved", timestamp: ack.timestamp ?? copy[i].timestamp };
+            break;
+          }
+        }
+        return copy;
+      });
+    });
+
+    s.on("send-failed", (err: any) => {
+      console.warn("send-failed", err);
+      setMessages((prev) => {
+        const copy = [...prev];
+        // mark the matching clientMessageId as failed if present
+        if (err?.clientMessageId) {
+          const idx = copy.findIndex((m) => m.clientMessageId === err.clientMessageId);
+          if (idx !== -1) {
+            copy[idx] = { ...copy[idx], status: "failed" };
+            return copy;
+          }
+        }
+        for (let i = copy.length - 1; i >= 0; i--) {
+          if (copy[i].isOwnMessage && copy[i].status === "sending") {
+            copy[i] = { ...copy[i], status: "failed" };
+            break;
+          }
+        }
+        return copy;
+      });
+    });
+
+    s.on("partner-disconnected", () => {
+      setStatus("disconnected");
+    });
+
     return () => {
-      newSocket.off("online-users");
-      newSocket.off("my-detail");
-      newSocket.off("waiting");
-      newSocket.off("matched-user");
-      newSocket.off("chat-started");
-      newSocket.off("partner-disconnected");
-      newSocket.off("receive-message");
-      newSocket.disconnect();
+      try {
+        s.off("connect");
+        s.off("register-success");
+        s.off("waiting");
+        s.off("chat-started");
+        s.off("partner-typing");
+        s.off("partner-stopped-typing");
+        s.off("receive-message");
+        s.off("message-saved");
+        s.off("send-failed");
+        s.off("partner-disconnected");
+        s.disconnect();
+      } catch (err) {
+        // ignore cleanup errors
+      }
+      socketRef.current = null;
     };
-  }, [username]);
+  }, [username, myId]);
 
-  // State to hold the media files
-  const [attachments, setAttachments] = useState([]);
-  const handleSendMessage = () => {
-    if (socket && partnerId && myDetails) {
-      // Build the message object using myDetails
-      const message = {
-        text: inputMessage, // The text content from the input
-        senderId: myDetails._id, // Use myDetails._id as the senderId
-        receiverId: partnerId, // The ID of the matched partner
-        timestamp: new Date().toISOString(), // Current timestamp when the message is sent
-        messageType: "text", // Assuming it’s a text message for now, can be dynamic
-        status: "sent", // Initially, set as "sent"
-        isOwnMessage: true, // This is the logged-in user’s message
-        attachments: attachments, // Include attachments (media files)
-        isTyping: false, // Set to false initially (can be used to show typing indicator)
-      };
-
-      // Emit the message via socket
-      socket.emit("send-message", { message: message, to: partnerId });
-
-      // Update the messages state to reflect the sent message
-      setMessages((prev) => [
-        ...prev,
-        {
-          user: myDetails.username, // Use myDetails.username for the sender
-          text: inputMessage,
-          isOwnMessage: true,
-          timestamp: message.timestamp, // Add timestamp to the message display
-          otherMessageDetails: message, // Store the message object for reference
-        },
-      ]);
-
-      // Clear the input field after sending
-      setInputMessage("");
-      setAttachments([]); // Clear attachments after sending the message
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
     }
-  };
+  }, [messages]);
 
-  // Handle file selection
-  const handleFileChange = (event: any) => {
-    const files = event.target.files;
-    if (files.length > 0) {
-      const fileArray: any = Array.from(files);
-      setAttachments(fileArray); // Save the selected files in the state
-    }
-  };
+  const sanitize = (s = "") => String(s).trim().slice(0, 2000);
 
-  const handleDisconnect = () => {
-    if (socket) {
-      alert("Disconnecting...");
-      // Notify the server of manual disconnect
-      socket.emit("manual-disconnect", { partnerId });
+  const sendTextMessage = () => {
+    if (!socketRef.current || !sessionId) return;
+    const text = sanitize(inputMessage);
+    if (!text) return;
 
-      // Update the local state
-      setStatus("waiting"); // Reset status to waiting
-      setMatchedWith(""); // Clear matched partner info
-      setMessages([]); // Clear messages
-      setPartnerId(null); // Reset partner ID
+    const clientMessageId = genClientId();
 
-      // Optionally disconnect the socket completely
-      socket.disconnect();
-    }
-  };
+    const localMsg: MessageItem = {
+      clientMessageId,
+      id: null,
+      user: username || "Me",
+      text,
+      isOwnMessage: true,
+      timestamp: new Date().toISOString(),
+      status: "sending",
+      sessionId,
+      type: "text",
+    };
+    setMessages((prev) => [...prev, localMsg]);
 
-  const handleReconnect = () => {
-    if (socket) {
-      setStatus("waiting");
-      socket.emit("register-user", username); // Re-register to find a new partner
-    }
+    socketRef.current.emit("send-message", {
+      sessionId,
+      content: text,
+      type: "text",
+      clientMessageId,
+    });
+
+    setInputMessage("");
+    socketRef.current.emit("user-stopped-typing", { sessionId });
   };
 
   const handleTyping = () => {
-    socket.emit("user-typing", {
-      username, // Your username
-      to: partnerId, // Recipient's ID
-    });
+    if (!socketRef.current || !sessionId) return;
+    socketRef.current.emit("user-typing", { sessionId });
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      socketRef.current?.emit("user-stopped-typing", { sessionId });
+    }, 1500);
   };
 
-  function arrayBufferToBase64(arrayBuffer: any) {
-    // Convert ArrayBuffer to a Uint8Array
-    const uint8Array = new Uint8Array(arrayBuffer);
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
 
-    // Create a binary string from the uint8Array
-    let binaryString = "";
-    for (let i = 0; i < uint8Array.length; i++) {
-      binaryString += String.fromCharCode(uint8Array[i]);
+    if (!["image/png", "image/jpeg"].includes(file.type)) {
+      alert("Only PNG or JPG images are allowed");
+      return;
     }
 
-    // Convert binary string to Base64
-    const base64String = btoa(binaryString);
+    if (file.size > MAX_IMAGE_BYTES) {
+      alert("Image too large. Max 2 MB allowed");
+      return;
+    }
 
-    // Return the Base64 string as a data URL for use in an <img> tag
-    return `data:image/png;base64,${base64String}`;
-  }
+    const clientMessageId = genClientId();
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      // optimistic local image message
+      const localMsg: MessageItem = {
+        clientMessageId,
+        id: null,
+        user: username || "Me",
+        isOwnMessage: true,
+        timestamp: new Date().toISOString(),
+        status: "sending",
+        sessionId,
+        type: "image",
+        imageDataUrl: dataUrl,
+      };
+      setMessages((prev) => [...prev, localMsg]);
+
+      // emit to server with clientMessageId so we can match later
+      socketRef.current?.emit("send-message", {
+        sessionId,
+        content: dataUrl,
+        type: "image",
+        clientMessageId,
+      });
+    };
+    reader.readAsDataURL(file);
+
+    // reset input so same file can be selected again if needed
+    e.currentTarget.value = "";
+  };
+
+  const renderMessage = (m: MessageItem, idx: number) => {
+    const own = !!m.isOwnMessage;
+    return (
+      <div key={m.clientMessageId ?? m.id ?? idx} className={`flex mb-2 ${own ? "justify-end" : "justify-start"}`}>
+        <div className={`rounded p-2 max-w-[70%] ${own ? "bg-blue-600 text-white" : "bg-gray-200 text-black"}`}>
+          {!own && <div className="font-bold mb-1">Partner</div>}
+          {m.type === "image" && m.imageDataUrl ? (
+            <img src={m.imageDataUrl} alt="shared" style={{ maxWidth: "300px", borderRadius: 8 }} />
+          ) : (
+            <div>{m.text}</div>
+          )}
+          <div style={{ fontSize: 11, marginTop: 6, color: own ? "#e6f0ff" : "#666" }}>
+            {new Date(m.timestamp || Date.now()).toLocaleTimeString()}
+            {m.isOwnMessage && m.status === "sending" && <span style={{ marginLeft: 8 }}>Sending…</span>}
+            {m.isOwnMessage && m.status === "saved" && <span style={{ marginLeft: 8 }}>Saved</span>}
+            {m.isOwnMessage && m.status === "failed" && <span style={{ marginLeft: 8, color: "red" }}>Failed</span>}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const handleEndSession = () => {
+    if (!socketRef.current || !sessionId) return;
+    socketRef.current.emit("end-session", { sessionId });
+    setSessionId(null);
+    setStatus("waiting");
+    setMessages([]);
+  };
+
+  const handleManualDisconnect = () => {
+    if (!socketRef.current) return;
+    if (sessionId) {
+      socketRef.current.emit("end-session", { sessionId });
+    }
+    socketRef.current.emit("manual-disconnect", {});
+    setStatus("waiting");
+    setSessionId(null);
+    setMessages([]);
+  };
 
   return (
-    <div className="bg-white flex justify-between flex-col h-full rounded-lg w-full ">
-      {status === "waiting" && (
-        <div className="text-center text-gray-500">
-          Please wait! We are looking for a match...
-        </div>
-      )}
-      {matchedWith && status !== "waiting" && (
-        <div className="text-lg text-center font-semibold text-primaryTheme mb-4">
-          <div className="font-bold text-center flex justify-center items-center space-x-2">
-            <div className="flex items-center">
-              <div>
-                You’ve matched with:{" "}
-                {capitalizeFirstLetters(matchedWith?.username)}
-              </div>
-              <div className="ml-2">
-                <div className="h-2 w-2 rounded-full bg-green-500 inline-block"></div>
-              </div>
-            </div>
-          </div>
-          –{" "}
-          <span className="italic">
-            Your conversation just got a whole lot more interesting!
-          </span>
-        </div>
-      )}
-      {status === "disconnected" ? (
-        <>
-          <div className="text-center">
-            {matchedWith?.userName}Partner has disconnected. We are constantly
-            trying to match you up with someone else.
-          </div>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", padding: 12 }}>
+      <div style={{ marginBottom: 8 }}>
+        <strong>Logged in as:</strong> {username}
+      </div>
 
-          <div className="flex items-center h-full w-full justify-center mt-4">
-            <div>
-              <img src={heart} className="w-[200px] h-[200px]" alt="" />
-            </div>
-          </div>
-          <button
-            onClick={handleReconnect}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-all mt-4"
-          >
-            Find New Partner
-          </button>
-        </>
-      ) : (
-        <>
-          {" "}
-          {status === "waiting" ? (
-            <>
-              <div className="messages rounded-full flex justify-center items-center  p-4 mb-4 h-fit overflow-y-hidden">
-                <img
-                  src={LookingForPartner}
-                  className="h-[200px] rounded-full w-[00px]"
-                  alt="Partner Vector"
-                />
-              </div>
-            </>
-          ) : (
-            <>
-              {status === "connecting" ? (
-                <>
-                  <div className="text-center flex flex-col justify-center items-center w-full h-full text-gray-500">
-                    <div>
-                      <img
-                        src={CoffeeDonut}
-                        className="w-[150px] rounded-full h-[150px]"
-                        alt="Coffee and Donut"
-                      />
-                    </div>
-                    <p className="mt-4 text-lg font-medium">
-                      Hi {myDetails?.username}! Waiting to match with a new
-                      partner...
-                    </p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="flex flex-col h-full overflow-y-auto">
-                    <div>
-                      {messages?.map((msg, index) => (
-                        <div
-                          key={index}
-                          className={`mb-2 flex items-center ${
-                            msg.isOwnMessage ? "justify-end" : "justify-start"
-                          }`}
-                        >
-                          <div
-                            className={`rounded-md px-2 py-1 text-sm ${
-                              msg.isOwnMessage
-                                ? "bg-primaryTheme text-white ml-2"
-                                : "bg-gray-200 w-auto text-gray-800 mr-2"
-                            }`}
-                          >
-                            <div className="flex justify-between items-center">
-                              {/* User Name */}
-                              <span className="font-bold">
-                                {!msg.isOwnMessage &&
-                                  msg.user.replace(/[()]/g, "")}
-                              </span>
-                            </div>
+      <div style={{ flex: 1, overflowY: "auto", padding: 8, border: "1px solid #ddd", borderRadius: 8 }}>
+        {messages.map((m, i) => renderMessage(m, i))}
+        <div ref={messagesEndRef} />
+      </div>
 
-                            {/* Message Text */}
-                            <div className="mt-1">
-                              <span>{msg.text}</span>
-                            </div>
+      {partnerIsTyping && <div style={{ fontStyle: "italic", marginTop: 6 }}>Partner is typing…</div>}
 
-                            {msg?.otherMessageDetails?.attachments?.[0] && (
-                              <div>
-                                {msg.isOwnMessage ? (
-                                  <>Sent an Image</>
-                                ) : (
-                                  <img
-                                    src={arrayBufferToBase64(
-                                      msg?.otherMessageDetails?.attachments?.[0]
-                                    )}
-                                    alt="Message Attachment"
-                                    className="max-w-[80%] h-auto rounded-md"
-                                  />
-                                )}
-                              </div>
-                            )}
+      <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center" }}>
+        <input
+          type="text"
+          value={inputMessage}
+          onChange={(e) => {
+            setInputMessage(e.target.value);
+            handleTyping();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              sendTextMessage();
+            }
+          }}
+          placeholder="Type a message"
+          style={{ flex: 1, padding: 8, borderRadius: 8, border: "1px solid #ccc" }}
+          disabled={status !== "started"}
+        />
 
-                            {/* Message Timestamp */}
-                            <div
-                              className={`text-xs mt-1 ${
-                                !msg.isOwnMessage ? "text-black" : "text-white"
-                              }`}
-                            >
-                              {new Date(
-                                msg.otherMessageDetails.timestamp
-                              ).toLocaleTimeString()}
-                            </div>
+        <label style={{ display: "inline-block", padding: "8px 10px", borderRadius: 8, background: "#eee", cursor: "pointer" }}>
+          📷
+          <input type="file" accept="image/png, image/jpeg" onChange={handleImageSelect} style={{ display: "none" }} />
+        </label>
 
-                            {/* Optional: Display Typing Indicator */}
-                            {msg.otherMessageDetails?.isTyping && (
-                              <div className="text-xs text-gray-500 mt-1">
-                                User is typing...
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-            </>
-          )}
-        </>
-      )}
-      {status === "started" && (
-        <div className="input-container flex items-center gap-2 md:mb-4 mb-0">
-          {/* Text input */}
-          <input
-            type="text"
-            value={inputMessage}
-            onChange={(e) => {
-              setInputMessage(e.target.value);
-              handleTyping();
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                handleSendMessage();
-              }
-            }}
-            placeholder="Type your message..."
-            className="flex-1 border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-primaryTheme"
-          />
+        <button onClick={sendTextMessage} disabled={!inputMessage.trim() || status !== "started"} style={{ padding: "8px 12px", borderRadius: 8, background: "#2b6cb0", color: "white", border: "none" }}>
+          Send
+        </button>
 
-          {/* File upload button */}
-          <label htmlFor="file-upload" className="cursor-pointer">
-            <span className="material-icons active:mt-1">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="gray"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                className="lucide lucide-paperclip"
-              >
-                <path d="M13.234 20.252 21 12.3" />
-                <path d="m16 6-8.414 8.586a2 2 0 0 0 0 2.828 2 2 0 0 0 2.828 0l8.414-8.586a4 4 0 0 0 0-5.656 4 4 0 0 0-5.656 0l-8.415 8.585a6 6 0 1 0 8.486 8.486" />
-              </svg>
-            </span>{" "}
-            {/* You can use any icon here */}
-          </label>
-          <input
-            id="file-upload"
-            type="file"
-            multiple
-            onChange={handleFileChange}
-            accept="image/*,video/*"
-            className="hidden active:mt-1" // Hide the default file input
-          />
+        <button onClick={handleEndSession} style={{ padding: "8px 12px", borderRadius: 8, background: "#e53e3e", color: "white", border: "none" }}>
+          End
+        </button>
 
-          {/* Send button */}
-          <button
-            onClick={handleSendMessage}
-            disabled={!inputMessage.trim() && attachments.length === 0}
-            className={`bg-primaryTheme text-white px-4 py-2 rounded-lg font-medium hover:bg-onHoveringPrimaryTheme transition-all ${
-              !inputMessage.trim() && attachments.length === 0
-                ? "opacity-50 cursor-not-allowed"
-                : ""
-            }`}
-          >
-            Send
-          </button>
-        </div>
-      )}
-      {status === "started" && (
-        <div className="flex md:justify-center justify-end my-2 items-center">
-          <div>
-            <button
-              onClick={handleDisconnect}
-              className="bg-primaryTheme text-white px-4 py-2 rounded-lg font-medium hover:bg-onHoveringPrimaryTheme transition-all"
-            >
-              End & Find Another
-            </button>
-          </div>
-        </div>
-      )}
-      {status === "waiting" && (
-        <div className="flex items-center justify-center">
-          <div className="bg-green-600 text-white w-full text-center px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-all">
-            <span className="italic"></span>Feel free to{" "}
-            <span className="font-bold">refresh</span>. Maybe the universe will
-            be kinder next time!"
-          </div>
-        </div>
-      )}
+        <button onClick={handleManualDisconnect} style={{ padding: "8px 12px", borderRadius: 8 }}>
+          Disconnect
+        </button>
+      </div>
     </div>
   );
 };
