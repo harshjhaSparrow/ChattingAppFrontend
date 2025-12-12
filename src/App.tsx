@@ -1,17 +1,18 @@
 import React from "react";
+import { ChakraProvider } from "@chakra-ui/react";
+import "./App.css";
 import UserRegistration from "./Components/UserRegistration";
 
-export const App = () => {
+export default function App() {
   return (
-    <div>
-      <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center">
-        <div className="bg-white shadow-lg rounded-lg w-full max-w-md p-6">
-          <h1 className="text-2xl font-bold text-center text-primaryTheme mb-6">
-            Chat App
-          </h1>
-          <UserRegistration />
+    <ChakraProvider>
+      <div className="h-screen overflow-hidden w-screen">
+        <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center">
+          <div className="bg-white shadow-lg rounded-lg w-full h-screen ">
+            <UserRegistration />
+          </div>
         </div>
       </div>
-    </div>
+    </ChakraProvider>
   );
-};
+}

@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+// SidebarDrawer.tsx
 import React from "react";
 import {
   Drawer,
@@ -106,9 +107,8 @@ export default function SidebarDrawer({ isOpen, onClose, username = "You", avata
                 _placeholder={{ color: "whiteAlpha.600" }}
                 py={3}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    // optional: implement quick-search
-                    // keep simple for now
+                  if ((e as any).key === "Enter") {
+                    console.log("Search");
                   }
                 }}
               />
@@ -121,8 +121,6 @@ export default function SidebarDrawer({ isOpen, onClose, username = "You", avata
           <VStack align="stretch" spacing={2}>
             {navItems.map((item) => (
               <NavRow key={item.id} label={item.label} hint={item.hint} Icon={item.icon} onClick={() => {
-                // handle navigation in parent as needed
-                // close drawer for now
                 onClose();
               }} />
             ))}
@@ -161,8 +159,6 @@ export default function SidebarDrawer({ isOpen, onClose, username = "You", avata
                   variant="outline"
                   leftIcon={<FiLogOut />}
                   onClick={() => {
-                    // emit logout or call parent handler
-                    // For now just close drawer
                     onClose();
                   }}
                 >
@@ -177,7 +173,6 @@ export default function SidebarDrawer({ isOpen, onClose, username = "You", avata
   );
 }
 
-/* small NavRow component for each item */
 function NavRow({ label, hint, Icon, onClick }: { label: string; hint?: string; Icon: any; onClick?: () => void }) {
   return (
     <Box

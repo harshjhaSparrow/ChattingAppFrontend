@@ -4,7 +4,17 @@
 import {
   Button,
   ChakraProvider,
-  Icon
+  Icon,
+  Image,
+  Input,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
+  Text,
+  VStack,
 } from "@chakra-ui/react";
 import {
   default as React,
@@ -34,6 +44,85 @@ function capitalizeFirstLetters(str: string) {
   return chars.join("");
 }
 
+/* ----------------------------
+   ImagePreviewModal component
+   ---------------------------- */
+function ImagePreviewModal({
+  isOpen,
+  urls,
+  onClose,
+  onSend,
+}: {
+  isOpen: boolean;
+  urls: string[]; // object URLs for preview
+  onClose: () => void;
+  onSend: (caption?: string) => void;
+}) {
+  const [caption, setCaption] = useState<string>("");
+
+  // Reset caption whenever modal closes or opens
+  useEffect(() => {
+    if (!isOpen) setCaption("");
+  }, [isOpen]);
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
+      <ModalOverlay backdropFilter="blur(5px)" />
+      <ModalContent bg="gray.900" color="white" borderRadius="lg" maxW="720px">
+        <ModalHeader fontSize="lg" fontWeight="semibold">
+          Preview
+        </ModalHeader>
+
+        <ModalBody>
+          {urls.length === 0 ? (
+            <Text>No image selected</Text>
+          ) : (
+            <VStack spacing={4}>
+              {urls.map((url, index) => (
+                <Image
+                  key={index}
+                  src={url}
+                  alt={`preview-${index}`}
+                  borderRadius="lg"
+                  maxH="420px"
+                  objectFit="contain"
+                />
+              ))}
+            </VStack>
+          )}
+
+          <Input
+            mt={4}
+            placeholder="Write a caption (optional)"
+            value={caption}
+            onChange={(e) => setCaption(e.target.value)}
+            bg="whiteAlpha.50"
+            color="white"
+          />
+        </ModalBody>
+
+        <ModalFooter gap={3}>
+          <Button variant="outline" colorScheme="red" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            colorScheme="blue"
+            onClick={() => {
+              onSend(caption);
+            }}
+            isDisabled={urls.length === 0}
+          >
+            Send
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  );
+}
+
+/* ----------------------------
+   ChatWindow component (main)
+   ---------------------------- */
 function ChatWindow({ username }: any) {
   const [socket, setSocket] = useState<any | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
@@ -45,8 +134,13 @@ function ChatWindow({ username }: any) {
   const [myDetails, setMyDetails] = useState<any>(null);
   const [partnerIsTyping, setpartnerIsTyping] = useState<any>(false);
   const [iamTyping, setIamTyping] = useState<any>(false);
-  const [attachments, setAttachments] = useState([]);
+  const [attachments, setAttachments] = useState<any[]>([]); // can be File[] or already-encoded attachments
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // preview modal state (object URLs + file references)
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [previewFiles, setPreviewFiles] = useState<File[]>([]);
+  const [previewURLs, setPreviewURLs] = useState<string[]>([]);
 
   useEffect(() => {
     const newSocket: any = io("https://chattingapp-2-o3ry.onrender.com/");
@@ -107,62 +201,164 @@ function ChatWindow({ username }: any) {
 
     // Cleanup function to remove listeners
     return () => {
-      newSocket.off("online-users");
-      newSocket.off("my-detail");
-      newSocket.off("waiting");
-      newSocket.off("matched-user");
-      newSocket.off("chat-started");
-      newSocket.off("partner-disconnected");
-      newSocket.off("receive-message");
-      newSocket.off("user-typing");
-      newSocket.off("user-stopped-typing");
-      newSocket.disconnect();
+      try {
+        newSocket.off("online-users");
+        newSocket.off("my-detail");
+        newSocket.off("waiting");
+        newSocket.off("matched-user");
+        newSocket.off("chat-started");
+        newSocket.off("partner-disconnected");
+        newSocket.off("receive-message");
+        newSocket.off("user-typing");
+        newSocket.off("user-stopped-typing");
+        newSocket.disconnect();
+      } catch (err) {
+        // ignore
+      }
     };
   }, [username]);
 
+  // Helper: convert File -> dataURL (base64)
+  const convertToBase64 = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
+    });
+
+  // When user selects files from input -> open preview modal with object URLs
+  const handleFileChange = (event: any) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    // Accept only jpg/jpeg/png
+    const fileArray: any[] = Array.from(files).filter((f: any) =>
+      ["image/png", "image/jpeg", "image/jpg"].includes(f.type)
+    );
+
+    if (fileArray.length === 0) {
+      alert("Please select PNG or JPG images only.");
+      return;
+    }
+
+    // create object URLs for preview
+    const urls = fileArray.map((f) => URL.createObjectURL(f));
+
+    setPreviewFiles(fileArray);
+    setPreviewURLs(urls);
+    setPreviewModalOpen(true);
+  };
+
+  // Send images selected in preview modal
+  const handleSendFromPreview = async (caption?: string) => {
+    if (!socket || !partnerId || !myDetails) {
+      // close and cleanup anyway
+      previewURLs.forEach((u) => URL.revokeObjectURL(u));
+      setPreviewFiles([]);
+      setPreviewURLs([]);
+      setPreviewModalOpen(false);
+      return;
+    }
+
+    // Convert selected files to base64 data URLs
+    const converted: any[] = [];
+    for (const file of previewFiles) {
+      try {
+        const dataUrl = await convertToBase64(file); // data:image/...
+        converted.push({ type: "image", data: dataUrl });
+      } catch (err) {
+        console.error("Failed to convert image:", err);
+      }
+    }
+
+    // Build message: if caption empty -> "Media"
+    const finalText =
+      !caption || caption.trim() === "" ? "Media" : String(caption);
+
+    const message = {
+      text: finalText,
+      senderId: myDetails._id,
+      receiverId: partnerId,
+      timestamp: new Date().toISOString(),
+      messageType: "image",
+      status: "sent",
+      isOwnMessage: true,
+      attachments: converted, // base64 attachments
+      isTyping: false,
+    };
+
+    console.log(":messagemessagemessage", message);
+
+    // optimistic UI: show message immediately
+    setMessages((prev) => [
+      ...prev,
+      {
+        user: myDetails.username,
+        text: finalText,
+        isOwnMessage: true,
+        timestamp: message.timestamp,
+        otherMessageDetails: message,
+        imageDataUrl: converted[0]?.data ?? null,
+      },
+    ]);
+
+    // emit to server (keeps your existing shape)
+    socket.emit("send-message", { message: message, to: partnerId });
+
+    // cleanup previews and attachments
+    previewURLs.forEach((u) => URL.revokeObjectURL(u));
+    setPreviewFiles([]);
+    setPreviewURLs([]);
+    setPreviewModalOpen(false);
+
+    // Also clear attachments/input if you used those states
+    setAttachments([]);
+    setInputMessage("");
+  };
+
+  // Minimal change to original handleSendMessage (text send and attachments array)
   const handleSendMessage = () => {
     if (socket && partnerId && myDetails) {
-      // Build the message object using myDetails
+      // If text is empty and attachments exist → set "Media"
+      const finalText =
+        (!inputMessage || inputMessage.trim() === "") && attachments.length > 0
+          ? "Media"
+          : inputMessage;
+
+      // Build the message object
       const message = {
-        text: inputMessage, // The text content from the input
-        senderId: myDetails._id, // Use myDetails._id as the senderId
-        receiverId: partnerId, // The ID of the matched partner
-        timestamp: new Date().toISOString(), // Current timestamp when the message is sent
-        messageType: "text", // Assuming it’s a text message for now, can be dynamic
-        status: "sent", // Initially, set as "sent"
-        isOwnMessage: true, // This is the logged-in user’s message
-        attachments: attachments, // Include attachments (media files)
-        isTyping: false, // Set to false initially (can be used to show typing indicator)
+        text: finalText, // Updated text logic
+        senderId: myDetails._id,
+        receiverId: partnerId,
+        timestamp: new Date().toISOString(),
+        messageType: attachments.length > 0 ? "image" : "text",
+        status: "sent",
+        isOwnMessage: true,
+        attachments: attachments, // File array or pre-encoded array
+        isTyping: false,
       };
 
-      // Emit the message via socket
+      console.log(":messagemessagemessage", message);
+
+      // Emit the message through socket
       socket.emit("send-message", { message: message, to: partnerId });
 
-      // Update the messages state to reflect the sent message
+      // Update chat UI immediately
       setMessages((prev) => [
         ...prev,
         {
-          user: myDetails.username, // Use myDetails.username for the sender
-          text: inputMessage,
+          user: myDetails.username,
+          text: finalText, // Updated here too
           isOwnMessage: true,
-          timestamp: message.timestamp, // Add timestamp to the message display
-          otherMessageDetails: message, // Store the message object for reference
+          timestamp: message.timestamp,
+          otherMessageDetails: message,
         },
       ]);
 
-      // Clear the input field after sending
+      // Reset values
       setInputMessage("");
-      setAttachments([]); // Clear attachments after sending the message
-    }
-  };
-
-  // Handle file selection
-  const handleFileChange = (event: any) => {
-    const files = event.target.files;
-    console.log("filesfilesfiles",files)
-    if (files.length > 0) {
-      const fileArray: any = Array.from(files);
-      setAttachments(fileArray); // Save the selected files in the state
+      setAttachments([]);
     }
   };
 
@@ -227,6 +423,20 @@ function ChatWindow({ username }: any) {
 
   return (
     <div className="bg-white flex justify-between flex-col h-full rounded-lg w-full ">
+      {/* Preview Modal */}
+      <ImagePreviewModal
+        isOpen={previewModalOpen}
+        urls={previewURLs}
+        onClose={() => {
+          // revoke object URLs on cancel
+          previewURLs.forEach((u) => URL.revokeObjectURL(u));
+          setPreviewFiles([]);
+          setPreviewURLs([]);
+          setPreviewModalOpen(false);
+        }}
+        onSend={(caption?: string) => handleSendFromPreview(caption)}
+      />
+
       {status === "waiting" && (
         <div className="text-center text-gray-500">
           Please wait! We are looking for a match...
@@ -306,64 +516,89 @@ function ChatWindow({ username }: any) {
                   <div className="flex flex-col h-full overflow-y-auto">
                     <div>
                       <div> </div>
-                      {messages?.map((msg, index) => (
-                        <div
-                          key={index}
-                          className={`mb-2 flex items-center ${
-                            msg.isOwnMessage ? "justify-end" : "justify-start"
-                          }`}
-                        >
-                          <div
-                            className={`rounded-md px-2 py-1 text-sm ${
-                              msg.isOwnMessage
-                                ? "bg-primaryTheme text-white ml-2"
-                                : "bg-gray-200 w-auto text-gray-800 mr-2"
-                            }`}
-                          >
-                            <div className="flex justify-between items-center">
-                              {/* User Name */}
-                              <span className="font-bold">
-                                {!msg.isOwnMessage &&
-                                  msg.user.replace(/[()]/g, "")}
-                              </span>
-                            </div>
+                     {messages?.map((msg, index) => {
+  // attachment detection (first attachment only)
+  const attachment = msg?.otherMessageDetails?.attachments?.[0];
 
-                            {/* Message Text */}
-                            <div className="mt-1">
-                              <span>{msg.text}</span>
-                            </div>
+  let imgSrc: string | null = null;
+  try {
+    // case: attachment is object with { data: 'data:image/...' }
+    if (attachment && typeof attachment === "object" && typeof attachment.data === "string" && attachment.data.startsWith("data:image")) {
+      imgSrc = attachment.data;
+    }
+    // case: attachment is a plain data-url string
+    else if (attachment && typeof attachment === "string" && attachment.startsWith("data:image")) {
+      imgSrc = attachment;
+    }
+    // case: attachment is an ArrayBuffer or TypedArray
+    else if (attachment && (attachment instanceof ArrayBuffer || ArrayBuffer.isView(attachment))) {
+      imgSrc = arrayBufferToBase64(attachment);
+    }
+    // case: attachment object contains raw bytes in .data (Uint8Array / ArrayBuffer)
+    else if (attachment && attachment.data && (attachment.data instanceof ArrayBuffer || ArrayBuffer.isView(attachment.data))) {
+      imgSrc = arrayBufferToBase64(attachment.data);
+    }
+  } catch (e) {
+    imgSrc = null;
+  }
 
-                            {msg?.otherMessageDetails?.attachments?.[0] && (
-                              <div>
-                                {msg.isOwnMessage ? (
-                                  <>Sent an Image</>
-                                ) : (
-                                  <img
-                                    src={arrayBufferToBase64(
-                                      msg?.otherMessageDetails?.attachments?.[0]
-                                    )}
-                                    alt="Message Attachment"
-                                    className="max-w-[80%] h-auto rounded-md"
-                                  />
-                                )}
-                              </div>
-                            )}
+  const timestamp = (msg?.otherMessageDetails?.timestamp ?? msg?.timestamp) || Date.now();
 
-                            {/* Message Timestamp */}
-                            <div
-                              className={`text-xs mt-1 ${
-                                !msg.isOwnMessage ? "text-black" : "text-white"
-                              }`}
-                            >
-                              {new Date(
-                                msg.otherMessageDetails.timestamp
-                              ).toLocaleTimeString()}
-                            </div>
+  return (
+    <div
+      key={index}
+      className={`mb-2 flex items-center ${
+        msg.isOwnMessage ? "justify-end" : "justify-start"
+      }`}
+    >
+      <div
+        className={`rounded-md px-2 py-1 text-sm ${
+          msg.isOwnMessage
+            ? "bg-primaryTheme text-white ml-2"
+            : "bg-gray-200 w-auto text-gray-800 mr-2"
+        }`}
+      >
+        <div className="flex justify-between items-center">
+          {/* User Name */}
+          <span className="font-bold">
+            {!msg.isOwnMessage && msg.user?.replace(/[()]/g, "")}
+          </span>
+        </div>
 
-                            {/* Optional: Display Typing Indicator */}
-                          </div>
-                        </div>
-                      ))}
+        {/* Message Text */}
+        <div className="mt-1">
+          <span>{msg.text}</span>
+        </div>
+
+        {/* Image Attachment (if present) */}
+        {imgSrc ? (
+          <div className="mt-2">
+            <img
+              src={imgSrc}
+              alt="Message Attachment"
+              className="max-w-[40%] h-auto rounded-md"
+            />
+          </div>
+        ) : msg?.otherMessageDetails?.attachments?.[0] ? (
+          // fallback when an attachment exists but we couldn't decode it
+          <div className="mt-2 italic text-xs text-gray-500">Sent an attachment</div>
+        ) : null}
+
+        {/* Message Timestamp */}
+        <div
+          className={`text-xs mt-1 ${
+            !msg.isOwnMessage ? "text-black" : "text-white"
+          }`}
+        >
+          {new Date(timestamp).toLocaleTimeString()}
+        </div>
+
+        {/* Optional: Display Typing Indicator */}
+      </div>
+    </div>
+  );
+})}
+
                       {partnerIsTyping && !iamTyping && (
                         <div className="text-xs text-gray-500 mt-1">
                           <div className="bg-gray-200 px-3 py-2 rounded-2xl rounded-bl-sm inline-block">
@@ -431,7 +666,7 @@ function ChatWindow({ username }: any) {
             type="file"
             multiple
             onChange={handleFileChange}
-            accept="image/*,video/*"
+            accept="image/png, image/jpeg"
             className="hidden active:mt-1" // Hide the default file input
           />
           {/* Send button */}
