@@ -4,7 +4,6 @@
 import {
   Button,
   ChakraProvider,
-  Icon,
   Image,
   Input,
   Modal,
@@ -24,18 +23,19 @@ import {
   useState,
 } from "react";
 import { createRoot } from "react-dom/client";
-import { CiMenuBurger } from "react-icons/ci";
+import Linkify from "react-linkify";
 import { io } from "socket.io-client";
 import heart from "../public/Beatinghearts.gif";
+import Logo from "../public/Logo.png";
 import LookingForPartner from "../public/LookingForPartner.gif";
-import CoffeeDonut from "../public/coffeedonutgif.gif";
+import CoffeeDonut from "../public/coffeedonutgif.png";
 import "./App.css";
 import SidebarDrawer from "./Components/SidebarDrawer";
 
 function capitalizeFirstLetters(str: string) {
   const chars: any = str.split("");
-  for (let i = 0; i < chars.length; i++) {
-    if (i === 0 || chars[i - 1] === " ") {
+  for (let i = 0; i < chars?.length; i++) {
+    if (i === 0 || chars?.[i - 1] === " ") {
       chars[i] = chars[i].toUpperCase();
     } else {
       chars[i] = chars[i].toLowerCase();
@@ -74,7 +74,7 @@ function ImagePreviewModal({
         </ModalHeader>
 
         <ModalBody>
-          {urls.length === 0 ? (
+          {urls?.length === 0 ? (
             <Text>No image selected</Text>
           ) : (
             <VStack spacing={4}>
@@ -95,7 +95,7 @@ function ImagePreviewModal({
             mt={4}
             placeholder="Write a caption (optional)"
             value={caption}
-            onChange={(e) => setCaption(e.target.value)}
+            onChange={(e) => setCaption(e?.target?.value)}
             bg="whiteAlpha.50"
             color="white"
           />
@@ -110,7 +110,7 @@ function ImagePreviewModal({
             onClick={() => {
               onSend(caption);
             }}
-            isDisabled={urls.length === 0}
+            isDisabled={urls?.length === 0}
           >
             Send
           </Button>
@@ -143,13 +143,13 @@ function ChatWindow({ username }: any) {
   const [previewURLs, setPreviewURLs] = useState<string[]>([]);
 
   useEffect(() => {
+    // const newSocket: any = io("http://localhost:3999");
     const newSocket: any = io("https://chattingapp-2-o3ry.onrender.com/");
-    //const newSocket: any = io("http://localhost:3999/");
     setSocket(newSocket);
     newSocket.emit("register-user", username);
 
     newSocket.on("online-users", (users: string[]) => {
-      setUsersOnline(users.length);
+      setUsersOnline(users?.length);
     });
 
     newSocket.on("my-detail", (user: any) => {
@@ -173,7 +173,7 @@ function ChatWindow({ username }: any) {
 
     newSocket.on("chat-started", (partner: any) => {
       setMatchedWith(partner);
-      setPartnerId(partner.userId);
+      setPartnerId(partner?.userId);
       setStatus("started");
     });
 
@@ -222,32 +222,59 @@ function ChatWindow({ username }: any) {
   const convertToBase64 = (file: File) =>
     new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
+      reader.onload = () => resolve(reader?.result as string);
       reader.onerror = (err) => reject(err);
       reader.readAsDataURL(file);
     });
 
   // When user selects files from input -> open preview modal with object URLs
-  const handleFileChange = (event: any) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
-    // Accept only jpg/jpeg/png
-    const fileArray: any[] = Array.from(files).filter((f: any) =>
-      ["image/png", "image/jpeg", "image/jpg"].includes(f.type)
-    );
+    const MAX_FILE_SIZE_MB = 2;
+    const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
 
-    if (fileArray.length === 0) {
-      alert("Please select PNG or JPG images only.");
+    const validFiles: File[] = [];
+    const errors: string[] = [];
+
+    Array.from(files).forEach((file) => {
+      // Type check
+      if (!["image/png", "image/jpeg", "image/jpg"].includes(file.type)) {
+        errors.push(`${file.name} is not a supported image type.`);
+        return;
+      }
+
+      // Size check
+      if (file.size > MAX_FILE_SIZE) {
+        errors.push(
+          `${file.name} is too large. Max allowed size is ${MAX_FILE_SIZE_MB}MB.`
+        );
+        return;
+      }
+
+      validFiles.push(file);
+    });
+
+    // Show all errors together (better UX)
+    if (errors.length > 0) {
+      alert(errors.join("\n"));
+    }
+
+    if (validFiles.length === 0) {
+      event.target.value = ""; // ✅ reset input
       return;
     }
 
-    // create object URLs for preview
-    const urls = fileArray.map((f) => URL.createObjectURL(f));
+    // Create object URLs for preview
+    const urls = validFiles.map((file) => URL.createObjectURL(file));
 
-    setPreviewFiles(fileArray);
+    setPreviewFiles(validFiles);
     setPreviewURLs(urls);
     setPreviewModalOpen(true);
+
+    // ✅ reset input so same file can be re-selected
+    event.target.value = "";
   };
 
   // Send images selected in preview modal
@@ -278,7 +305,7 @@ function ChatWindow({ username }: any) {
 
     const message = {
       text: finalText,
-      senderId: myDetails._id,
+      senderId: myDetails?._id,
       receiverId: partnerId,
       timestamp: new Date().toISOString(),
       messageType: "image",
@@ -294,7 +321,7 @@ function ChatWindow({ username }: any) {
     setMessages((prev) => [
       ...prev,
       {
-        user: myDetails.username,
+        user: myDetails?.username,
         text: finalText,
         isOwnMessage: true,
         timestamp: message.timestamp,
@@ -322,17 +349,17 @@ function ChatWindow({ username }: any) {
     if (socket && partnerId && myDetails) {
       // If text is empty and attachments exist → set "Media"
       const finalText =
-        (!inputMessage || inputMessage.trim() === "") && attachments.length > 0
+        (!inputMessage || inputMessage.trim() === "") && attachments?.length > 0
           ? "Media"
           : inputMessage;
 
       // Build the message object
       const message = {
         text: finalText, // Updated text logic
-        senderId: myDetails._id,
+        senderId: myDetails?._id,
         receiverId: partnerId,
         timestamp: new Date().toISOString(),
-        messageType: attachments.length > 0 ? "image" : "text",
+        messageType: attachments?.length > 0 ? "image" : "text",
         status: "sent",
         isOwnMessage: true,
         attachments: attachments, // File array or pre-encoded array
@@ -348,7 +375,7 @@ function ChatWindow({ username }: any) {
       setMessages((prev) => [
         ...prev,
         {
-          user: myDetails.username,
+          user: myDetails?.username,
           text: finalText, // Updated here too
           isOwnMessage: true,
           timestamp: message.timestamp,
@@ -392,8 +419,8 @@ function ChatWindow({ username }: any) {
     socket.emit("user-typing", { username, to: partnerId });
 
     // Clear any previous timeout to reset the delay
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
+    if (typingTimeoutRef?.current) {
+      clearTimeout(typingTimeoutRef?.current);
     }
 
     // Set a timeout to detect when user stops typing
@@ -410,8 +437,8 @@ function ChatWindow({ username }: any) {
 
     // Create a binary string from the uint8Array
     let binaryString = "";
-    for (let i = 0; i < uint8Array.length; i++) {
-      binaryString += String.fromCharCode(uint8Array[i]);
+    for (let i = 0; i < uint8Array?.length; i++) {
+      binaryString += String.fromCharCode(uint8Array?.[i]);
     }
 
     // Convert binary string to Base64
@@ -514,90 +541,139 @@ function ChatWindow({ username }: any) {
               ) : (
                 <>
                   <div className="flex flex-col h-full overflow-y-auto">
-                    <div>
+                    <div className="h-60vh">
                       <div> </div>
-                     {messages?.map((msg, index) => {
-  // attachment detection (first attachment only)
-  const attachment = msg?.otherMessageDetails?.attachments?.[0];
+                      {messages?.map((msg, index) => {
+                        // attachment detection (first attachment only)
+                        const attachment =
+                          msg?.otherMessageDetails?.attachments?.[0];
 
-  let imgSrc: string | null = null;
-  try {
-    // case: attachment is object with { data: 'data:image/...' }
-    if (attachment && typeof attachment === "object" && typeof attachment.data === "string" && attachment.data.startsWith("data:image")) {
-      imgSrc = attachment.data;
-    }
-    // case: attachment is a plain data-url string
-    else if (attachment && typeof attachment === "string" && attachment.startsWith("data:image")) {
-      imgSrc = attachment;
-    }
-    // case: attachment is an ArrayBuffer or TypedArray
-    else if (attachment && (attachment instanceof ArrayBuffer || ArrayBuffer.isView(attachment))) {
-      imgSrc = arrayBufferToBase64(attachment);
-    }
-    // case: attachment object contains raw bytes in .data (Uint8Array / ArrayBuffer)
-    else if (attachment && attachment.data && (attachment.data instanceof ArrayBuffer || ArrayBuffer.isView(attachment.data))) {
-      imgSrc = arrayBufferToBase64(attachment.data);
-    }
-  } catch (e) {
-    imgSrc = null;
-  }
+                        let imgSrc: string | null = null;
+                        try {
+                          // case: attachment is object with { data: 'data:image/...' }
+                          if (
+                            attachment &&
+                            typeof attachment === "object" &&
+                            typeof attachment?.data === "string" &&
+                            attachment.data.startsWith("data:image")
+                          ) {
+                            imgSrc = attachment?.data;
+                          }
+                          // case: attachment is a plain data-url string
+                          else if (
+                            attachment &&
+                            typeof attachment === "string" &&
+                            attachment.startsWith("data:image")
+                          ) {
+                            imgSrc = attachment;
+                          }
+                          // case: attachment is an ArrayBuffer or TypedArray
+                          else if (
+                            attachment &&
+                            (attachment instanceof ArrayBuffer ||
+                              ArrayBuffer.isView(attachment))
+                          ) {
+                            imgSrc = arrayBufferToBase64(attachment);
+                          }
+                          // case: attachment object contains raw bytes in .data (Uint8Array / ArrayBuffer)
+                          else if (
+                            attachment &&
+                            attachment?.data &&
+                            (attachment?.data instanceof ArrayBuffer ||
+                              ArrayBuffer.isView(attachment?.data))
+                          ) {
+                            imgSrc = arrayBufferToBase64(attachment?.data);
+                          }
+                        } catch (e) {
+                          imgSrc = null;
+                        }
 
-  const timestamp = (msg?.otherMessageDetails?.timestamp ?? msg?.timestamp) || Date.now();
+                        const timestamp =
+                          (msg?.otherMessageDetails?.timestamp ??
+                            msg?.timestamp) ||
+                          Date.now();
 
-  return (
-    <div
-      key={index}
-      className={`mb-2 flex items-center ${
-        msg.isOwnMessage ? "justify-end" : "justify-start"
-      }`}
-    >
-      <div
-        className={`rounded-md px-2 py-1 text-sm ${
-          msg.isOwnMessage
-            ? "bg-primaryTheme text-white ml-2"
-            : "bg-gray-200 w-auto text-gray-800 mr-2"
-        }`}
-      >
-        <div className="flex justify-between items-center">
-          {/* User Name */}
-          <span className="font-bold">
-            {!msg.isOwnMessage && msg.user?.replace(/[()]/g, "")}
-          </span>
-        </div>
+                        return (
+                          <div
+                            key={index}
+                            className={`mb-2 flex items-center ${
+                              msg?.isOwnMessage
+                                ? "justify-end"
+                                : "justify-start"
+                            }`}
+                          >
+                            <div
+                              className={`rounded-md px-2 py-1 text-sm ${
+                                msg?.isOwnMessage
+                                  ? "bg-primaryTheme text-white ml-2"
+                                  : "bg-gray-200 w-auto text-gray-800 mr-2"
+                              }`}
+                            >
+                              <div className="flex justify-between items-center">
+                                {/* User Name */}
+                                <span className="font-bold">
+                                  {!msg?.isOwnMessage &&
+                                    msg?.user?.replace(/[()]/g, "")}
+                                </span>
+                              </div>
 
-        {/* Message Text */}
-        <div className="mt-1">
-          <span>{msg.text}</span>
-        </div>
+                              {/* Message Text */}
+                              <div className="mt-1">
+                                <Linkify
+                                  componentDecorator={(
+                                    decoratedHref: any,
+                                    decoratedText: any,
+                                    key: any
+                                  ) => (
+                                    <a
+                                      href={decoratedHref}
+                                      key={key}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-500 hover:underline"
+                                    >
+                                      {decoratedText}
+                                    </a>
+                                  )}
+                                >
+                                  <span className="break-words">
+                                    {msg?.text}
+                                  </span>
+                                </Linkify>
+                              </div>
 
-        {/* Image Attachment (if present) */}
-        {imgSrc ? (
-          <div className="mt-2">
-            <img
-              src={imgSrc}
-              alt="Message Attachment"
-              className="max-w-[40%] h-auto rounded-md"
-            />
-          </div>
-        ) : msg?.otherMessageDetails?.attachments?.[0] ? (
-          // fallback when an attachment exists but we couldn't decode it
-          <div className="mt-2 italic text-xs text-gray-500">Sent an attachment</div>
-        ) : null}
+                              {/* Image Attachment (if present) */}
+                              {imgSrc ? (
+                                <div className="mt-2">
+                                  <img
+                                    src={imgSrc}
+                                    alt="Message Attachment"
+                                    className="max-w-[100%] h-[20rem] rounded-md"
+                                  />
+                                </div>
+                              ) : msg?.otherMessageDetails?.attachments?.[0] ? (
+                                // fallback when an attachment exists but we couldn't decode it
+                                <div className="mt-2 italic text-xs text-gray-500">
+                                  Sent an attachment
+                                </div>
+                              ) : null}
 
-        {/* Message Timestamp */}
-        <div
-          className={`text-xs mt-1 ${
-            !msg.isOwnMessage ? "text-black" : "text-white"
-          }`}
-        >
-          {new Date(timestamp).toLocaleTimeString()}
-        </div>
+                              {/* Message Timestamp */}
+                              <div
+                                className={`text-xs mt-1 ${
+                                  !msg?.isOwnMessage
+                                    ? "text-black"
+                                    : "text-white"
+                                }`}
+                              >
+                                {new Date(timestamp).toLocaleTimeString()}
+                              </div>
 
-        {/* Optional: Display Typing Indicator */}
-      </div>
-    </div>
-  );
-})}
+                              {/* Optional: Display Typing Indicator */}
+                            </div>
+                          </div>
+                        );
+                      })}
 
                       {partnerIsTyping && !iamTyping && (
                         <div className="text-xs text-gray-500 mt-1">
@@ -625,12 +701,12 @@ function ChatWindow({ username }: any) {
             value={inputMessage}
             onChange={(e) => {
               handleTyping();
-              setInputMessage(e.target.value);
+              setInputMessage(e?.target?.value);
               e.target.style.height = "auto"; // Reset height
-              e.target.style.height = e.target.scrollHeight + "px"; // Auto-expand
+              e.target.style.height = e?.target?.scrollHeight + "px"; // Auto-expand
             }}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
+              if (e?.key === "Enter" && !e?.shiftKey) {
                 e.preventDefault(); // Prevent new line
                 handleSendMessage();
               }
@@ -672,9 +748,9 @@ function ChatWindow({ username }: any) {
           {/* Send button */}
           <Button
             onClick={handleSendMessage}
-            disabled={!inputMessage.trim() && attachments.length === 0}
+            disabled={!inputMessage.trim() && attachments?.length === 0}
             className={`bg-primaryTheme text-white p-2 rounded-full font-medium hover:bg-onHoveringPrimaryTheme transition-all ${
-              !inputMessage.trim() && attachments.length === 0
+              !inputMessage.trim() && attachments?.length === 0
                 ? "opacity-50 cursor-not-allowed"
                 : ""
             }`}
@@ -738,12 +814,12 @@ function UserRegistration() {
       setError("");
     } else {
       setError("Username cannot be empty");
-      inputRef.current?.focus();
+      inputRef?.current?.focus();
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
+    if (e?.key === "Enter") {
       handleRegister();
     }
   };
@@ -752,7 +828,7 @@ function UserRegistration() {
     <div className="flex flex-col items-center p-4 justify-center bg-white h-full w-full">
       {/* Drawer Toggle Button */}
 
-      <div className="w-full ">
+      {/* <div className="w-full ">
         <Icon
           onClick={toggleDrawer}
           fontSize="2xl"
@@ -761,7 +837,7 @@ function UserRegistration() {
         >
           <CiMenuBurger />
         </Icon>
-      </div>
+      </div> */}
 
       {/* Side Drawer */}
       <SidebarDrawer
@@ -771,8 +847,11 @@ function UserRegistration() {
       />
 
       {/* Main Content */}
-      <div className="text-2xl pl-2 py-4 font-bold w-full text-center text-primaryTheme">
-        <div>Blind</div>
+      <div className="text-2xl pl-2 py-4 font-bold  center w-full text-primaryTheme">
+        {/* <div>Blind</div> */}
+        <div className="flex justify-center items-center w-full">
+          <img src={Logo} className="w-30 h-20 center" alt="Blind Logo Here" />
+        </div>
       </div>
 
       {!isRegistered ? (
@@ -806,7 +885,7 @@ function UserRegistration() {
               type="text"
               autoComplete="on"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => setUsername(e?.target?.value)}
               onKeyDown={handleKeyDown}
               placeholder="Enter your username"
               className="w-full border border-gray-300 rounded-lg p-2 mb-2 focus:outline-none focus:ring-2 focus:ring-primaryTheme"
