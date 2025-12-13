@@ -28,10 +28,9 @@ import { io } from "socket.io-client";
 import heart from "../public/Beatinghearts.gif";
 import Logo from "../public/Logo.png";
 import LookingForPartner from "../public/LookingForPartner.gif";
-import CoffeeDonut from "../public/coffeedonutgif.png";
 import "./App.css";
 import SidebarDrawer from "./Components/SidebarDrawer";
-
+import CoffeeDonut from '../public/coffeedonutgif.png'
 function capitalizeFirstLetters(str: string) {
   const chars: any = str.split("");
   for (let i = 0; i < chars?.length; i++) {
@@ -143,8 +142,8 @@ function ChatWindow({ username }: any) {
   const [previewURLs, setPreviewURLs] = useState<string[]>([]);
 
   useEffect(() => {
-    // const newSocket: any = io("http://localhost:3999");
-    const newSocket: any = io("https://chattingapp-2-o3ry.onrender.com/");
+    const newSocket: any = io("http://localhost:3999");
+    //const newSocket: any = io("https://chattingapp-2-o3ry.onrender.com/");
     setSocket(newSocket);
     newSocket.emit("register-user", username);
 
@@ -465,9 +464,14 @@ function ChatWindow({ username }: any) {
       />
 
       {status === "waiting" && (
-        <div className="text-center text-gray-500">
-          Please wait! We are looking for a match...
-        </div>
+        <>
+          <div className="text-center text-gray-500">
+            Please wait! We are looking for a match...
+          </div>
+          <div>
+            <img src={Logo} alt="Logo" className="w-40 h-20 mx-auto" />
+          </div>
+        </>
       )}
       {matchedWith && status !== "waiting" && (
         <div className="text-lg text-center font-semibold text-primaryTheme mb-4">
@@ -850,7 +854,7 @@ function UserRegistration() {
       <div className="text-2xl pl-2 py-4 font-bold  center w-full text-primaryTheme">
         {/* <div>Blind</div> */}
         <div className="flex justify-center items-center w-full">
-          <img src={Logo} className="w-30 h-20 center" alt="Blind Logo Here" />
+          <img src={CoffeeDonut} className="w-30 h-20 center" alt="Blind Logo Here" />
         </div>
       </div>
 
