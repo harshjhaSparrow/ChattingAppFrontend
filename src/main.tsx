@@ -1,20 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-refresh/only-export-components */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import {
-  Button,
-  ChakraProvider,
-  Image,
-  Input,
-  Modal,
-  ModalBody,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  ModalOverlay,
-  Text,
-  VStack,
-} from "@chakra-ui/react";
+import { Button, ChakraProvider } from "@chakra-ui/react";
 import {
   default as React,
   StrictMode,
@@ -25,104 +12,18 @@ import {
 import { createRoot } from "react-dom/client";
 import Linkify from "react-linkify";
 import { io } from "socket.io-client";
-import heart from "../public/Beatinghearts.gif";
+import CoffeeDonut from "../public/coffeedonutgif.png";
 import Logo from "../public/Logo.png";
-import LookingForPartner from "../public/LookingForPartner.gif";
 import "./App.css";
+import ImagePreviewModal from "./Components/ImagePreviewModal";
 import SidebarDrawer from "./Components/SidebarDrawer";
-import CoffeeDonut from '../public/coffeedonutgif.png'
-function capitalizeFirstLetters(str: string) {
-  const chars: any = str.split("");
-  for (let i = 0; i < chars?.length; i++) {
-    if (i === 0 || chars?.[i - 1] === " ") {
-      chars[i] = chars[i].toUpperCase();
-    } else {
-      chars[i] = chars[i].toLowerCase();
-    }
-  }
-  return chars.join("");
-}
+import {
+  arrayBufferToBase64,
+  capitalizeFirstLetters,
+} from "./Utils/Commonfunctions";
 
-/* ----------------------------
-   ImagePreviewModal component
-   ---------------------------- */
-function ImagePreviewModal({
-  isOpen,
-  urls,
-  onClose,
-  onSend,
-}: {
-  isOpen: boolean;
-  urls: string[]; // object URLs for preview
-  onClose: () => void;
-  onSend: (caption?: string) => void;
-}) {
-  const [caption, setCaption] = useState<string>("");
-
-  // Reset caption whenever modal closes or opens
-  useEffect(() => {
-    if (!isOpen) setCaption("");
-  }, [isOpen]);
-
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
-      <ModalOverlay backdropFilter="blur(5px)" />
-      <ModalContent bg="gray.900" color="white" borderRadius="lg" maxW="720px">
-        <ModalHeader fontSize="lg" fontWeight="semibold">
-          Preview
-        </ModalHeader>
-
-        <ModalBody>
-          {urls?.length === 0 ? (
-            <Text>No image selected</Text>
-          ) : (
-            <VStack spacing={4}>
-              {urls.map((url, index) => (
-                <Image
-                  key={index}
-                  src={url}
-                  alt={`preview-${index}`}
-                  borderRadius="lg"
-                  maxH="420px"
-                  objectFit="contain"
-                />
-              ))}
-            </VStack>
-          )}
-
-          <Input
-            mt={4}
-            placeholder="Write a caption (optional)"
-            value={caption}
-            onChange={(e) => setCaption(e?.target?.value)}
-            bg="whiteAlpha.50"
-            color="white"
-          />
-        </ModalBody>
-
-        <ModalFooter gap={3}>
-          <Button variant="outline" colorScheme="red" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            colorScheme="blue"
-            onClick={() => {
-              onSend(caption);
-            }}
-            isDisabled={urls?.length === 0}
-          >
-            Send
-          </Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
-  );
-}
-
-/* ----------------------------
-   ChatWindow component (main)
-   ---------------------------- */
 function ChatWindow({ username }: any) {
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [socket, setSocket] = useState<any | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [inputMessage, setInputMessage] = useState<string>("");
@@ -131,51 +32,67 @@ function ChatWindow({ username }: any) {
   const [usersOnline, setUsersOnline] = useState(0);
   const [matchedWith, setMatchedWith]: any = useState<any>(null);
   const [myDetails, setMyDetails] = useState<any>(null);
-  const [partnerIsTyping, setpartnerIsTyping] = useState<any>(false);
-  const [iamTyping, setIamTyping] = useState<any>(false);
+  const [partnerIsTyping, setpartnerIsTyping] = useState<boolean>(false);
+  const [iamTyping, setIamTyping] = useState<boolean>(false);
   const [attachments, setAttachments] = useState<any[]>([]); // can be File[] or already-encoded attachments
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // preview modal state (object URLs + file references)
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [previewFiles, setPreviewFiles] = useState<File[]>([]);
   const [previewURLs, setPreviewURLs] = useState<string[]>([]);
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, partnerIsTyping]);
+
+  const uploadToCloudinary = async (file: File): Promise<string> => {
+    const formData = new FormData();
+
+    formData.append("file", file);
+    formData.append("upload_preset", "chattingApp"); // ✅ from your preset
+    formData.append("folder", "chattingApp/media");
+
+    const res = await fetch(
+      "https://api.cloudinary.com/v1_1/drgklvsmv/image/upload",
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    if (!res.ok) {
+      throw new Error("Cloudinary upload failed");
+    }
+
+    const data = await res.json();
+    return data.secure_url; // ✅ CDN URL
+  };
 
   useEffect(() => {
     //const newSocket: any = io("http://localhost:3999");
     const newSocket: any = io("https://chattingapp-2-o3ry.onrender.com/");
     setSocket(newSocket);
     newSocket.emit("register-user", username);
-
     newSocket.on("online-users", (users: string[]) => {
       setUsersOnline(users?.length);
     });
-
     newSocket.on("my-detail", (user: any) => {
       setMyDetails(user);
     });
-
     newSocket.on("waiting", (message: string) => {
       setStatus("waiting");
     });
-
     // Listen for typing events from the server
     newSocket.on("user-typing", (message: any) => {
       setpartnerIsTyping(true);
     });
-
     newSocket.on("user-stopped-typing", (message: any) => {
       setpartnerIsTyping(false);
     });
-
     newSocket.on("matched-user", (message: string) => {});
-
     newSocket.on("chat-started", (partner: any) => {
       setMatchedWith(partner);
       setPartnerId(partner?.userId);
       setStatus("started");
     });
-
     newSocket.on("partner-disconnected", (message: any) => {
       setStatus("disconnected");
       // After a disconnection, automatically attempt to find a new match
@@ -183,7 +100,6 @@ function ChatWindow({ username }: any) {
       setMessages([]); // Clear message history
       setPartnerId(null); // Reset partner ID
     });
-
     newSocket.on(
       "receive-message",
       ({ message, from }: { message: any; from: string }) => {
@@ -198,7 +114,6 @@ function ChatWindow({ username }: any) {
       }
     );
 
-    // Cleanup function to remove listeners
     return () => {
       try {
         newSocket.off("online-users");
@@ -278,69 +193,53 @@ function ChatWindow({ username }: any) {
 
   // Send images selected in preview modal
   const handleSendFromPreview = async (caption?: string) => {
-    if (!socket || !partnerId || !myDetails) {
-      // close and cleanup anyway
-      previewURLs.forEach((u) => URL.revokeObjectURL(u));
+    if (!socket || !partnerId || !myDetails) return;
+
+    try {
+      const uploadedUrls: string[] = [];
+
+      for (const file of previewFiles) {
+        const url = await uploadToCloudinary(file);
+        uploadedUrls.push(url);
+      }
+
+      const finalText = !caption || caption.trim() === "" ? "Media" : caption;
+
+      const message = {
+        text: finalText,
+        senderId: myDetails._id,
+        receiverId: partnerId,
+        timestamp: new Date().toISOString(),
+        messageType: "image",
+        status: "sent",
+        isOwnMessage: true,
+        attachments: uploadedUrls.map((url) => ({
+          type: "image",
+          url,
+        })),
+      };
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          user: myDetails.username,
+          text: finalText,
+          isOwnMessage: true,
+          timestamp: message.timestamp,
+          otherMessageDetails: message,
+        },
+      ]);
+
+      socket.emit("send-message", { message, to: partnerId });
+    } catch (err) {
+      alert("Image upload failed. Please try again.");
+    } finally {
+      previewURLs.forEach(URL.revokeObjectURL);
       setPreviewFiles([]);
       setPreviewURLs([]);
       setPreviewModalOpen(false);
-      return;
+      setInputMessage("");
     }
-
-    // Convert selected files to base64 data URLs
-    const converted: any[] = [];
-    for (const file of previewFiles) {
-      try {
-        const dataUrl = await convertToBase64(file); // data:image/...
-        converted.push({ type: "image", data: dataUrl });
-      } catch (err) {
-        console.error("Failed to convert image:", err);
-      }
-    }
-
-    // Build message: if caption empty -> "Media"
-    const finalText =
-      !caption || caption.trim() === "" ? "Media" : String(caption);
-
-    const message = {
-      text: finalText,
-      senderId: myDetails?._id,
-      receiverId: partnerId,
-      timestamp: new Date().toISOString(),
-      messageType: "image",
-      status: "sent",
-      isOwnMessage: true,
-      attachments: converted, // base64 attachments
-      isTyping: false,
-    };
-
-    console.log(":messagemessagemessage", message);
-
-    // optimistic UI: show message immediately
-    setMessages((prev) => [
-      ...prev,
-      {
-        user: myDetails?.username,
-        text: finalText,
-        isOwnMessage: true,
-        timestamp: message.timestamp,
-        otherMessageDetails: message,
-        imageDataUrl: converted[0]?.data ?? null,
-      },
-    ]);
-
-    // emit to server (keeps your existing shape)
-    socket.emit("send-message", { message: message, to: partnerId });
-
-    // cleanup previews and attachments
-    previewURLs.forEach((u) => URL.revokeObjectURL(u));
-    setPreviewFiles([]);
-    setPreviewURLs([]);
-    setPreviewModalOpen(false);
-
-    // Also clear attachments/input if you used those states
-    setAttachments([]);
-    setInputMessage("");
   };
 
   // Minimal change to original handleSendMessage (text send and attachments array)
@@ -430,23 +329,6 @@ function ChatWindow({ username }: any) {
     }, 2000); // User stops typing after 2 seconds of inactivity
   };
 
-  function arrayBufferToBase64(arrayBuffer: any) {
-    // Convert ArrayBuffer to a Uint8Array
-    const uint8Array = new Uint8Array(arrayBuffer);
-
-    // Create a binary string from the uint8Array
-    let binaryString = "";
-    for (let i = 0; i < uint8Array?.length; i++) {
-      binaryString += String.fromCharCode(uint8Array?.[i]);
-    }
-
-    // Convert binary string to Base64
-    const base64String = btoa(binaryString);
-
-    // Return the Base64 string as a data URL for use in an <img> tag
-    return `data:image/png;base64,${base64String}`;
-  }
-
   return (
     <div className="bg-white flex justify-between flex-col h-full rounded-lg w-full ">
       {/* Preview Modal */}
@@ -464,15 +346,19 @@ function ChatWindow({ username }: any) {
       />
 
       {status === "waiting" && (
-        <>
-          <div className="text-center text-gray-500">
+        <div className="flex flex-col items-center gap-3">
+          <div className="text-center text-gray-500 animate-pulse">
             Please wait! We are looking for a match...
           </div>
-          <div>
-            <img src={Logo} alt="Logo" className="w-40 h-20 mx-auto" />
-          </div>
-        </>
+
+          <img
+            src={Logo}
+            alt="Logo"
+            className="w-40 h-20 mx-auto animate-pulse"
+          />
+        </div>
       )}
+
       {matchedWith && status !== "waiting" && (
         <div className="text-lg text-center font-semibold text-primaryTheme mb-4">
           <div className="font-bold text-center flex justify-center items-center space-x-2">
@@ -501,7 +387,11 @@ function ChatWindow({ username }: any) {
 
           <div className="flex items-center h-full w-full justify-center mt-4">
             <div>
-              <img src={heart} className="w-[200px] h-[200px]" alt="" />
+              <img
+                src={CoffeeDonut}
+                alt="Logo"
+                className="w-40 h-40 mx-auto animate-pulse"
+              />
             </div>
           </div>
           <button
@@ -518,7 +408,7 @@ function ChatWindow({ username }: any) {
             <>
               <div className="messages rounded-full flex justify-center items-center  p-4 mb-4 h-fit overflow-y-hidden">
                 <img
-                  src={LookingForPartner}
+                  src={CoffeeDonut}
                   className="h-[200px] rounded-full w-[00px]"
                   alt="Partner Vector"
                 />
@@ -532,7 +422,7 @@ function ChatWindow({ username }: any) {
                     <div>
                       <img
                         src={CoffeeDonut}
-                        className="w-[150px] rounded-full h-[150px]"
+                        className="w-40 h-20 mx-auto animate-pulse"
                         alt="Coffee and Donut"
                       />
                     </div>
@@ -545,62 +435,24 @@ function ChatWindow({ username }: any) {
               ) : (
                 <>
                   <div className="flex flex-col h-full overflow-y-auto">
-                    <div className="h-60vh">
-                      <div> </div>
+                    <div className="h-50vh">
                       {messages?.map((msg, index) => {
-                        // attachment detection (first attachment only)
                         const attachment =
                           msg?.otherMessageDetails?.attachments?.[0];
-
-                        let imgSrc: string | null = null;
-                        try {
-                          // case: attachment is object with { data: 'data:image/...' }
-                          if (
-                            attachment &&
-                            typeof attachment === "object" &&
-                            typeof attachment?.data === "string" &&
-                            attachment.data.startsWith("data:image")
-                          ) {
-                            imgSrc = attachment?.data;
-                          }
-                          // case: attachment is a plain data-url string
-                          else if (
-                            attachment &&
-                            typeof attachment === "string" &&
-                            attachment.startsWith("data:image")
-                          ) {
-                            imgSrc = attachment;
-                          }
-                          // case: attachment is an ArrayBuffer or TypedArray
-                          else if (
-                            attachment &&
-                            (attachment instanceof ArrayBuffer ||
-                              ArrayBuffer.isView(attachment))
-                          ) {
-                            imgSrc = arrayBufferToBase64(attachment);
-                          }
-                          // case: attachment object contains raw bytes in .data (Uint8Array / ArrayBuffer)
-                          else if (
-                            attachment &&
-                            attachment?.data &&
-                            (attachment?.data instanceof ArrayBuffer ||
-                              ArrayBuffer.isView(attachment?.data))
-                          ) {
-                            imgSrc = arrayBufferToBase64(attachment?.data);
-                          }
-                        } catch (e) {
-                          imgSrc = null;
-                        }
+                        const imgSrc =
+                          attachment?.type === "image" && attachment?.url
+                            ? attachment.url
+                            : null;
 
                         const timestamp =
-                          (msg?.otherMessageDetails?.timestamp ??
-                            msg?.timestamp) ||
+                          msg?.otherMessageDetails?.timestamp ??
+                          msg?.timestamp ??
                           Date.now();
 
                         return (
                           <div
                             key={index}
-                            className={`mb-2 flex items-center ${
+                            className={`mb-2 flex ${
                               msg?.isOwnMessage
                                 ? "justify-end"
                                 : "justify-start"
@@ -610,70 +462,37 @@ function ChatWindow({ username }: any) {
                               className={`rounded-md px-2 py-1 text-sm ${
                                 msg?.isOwnMessage
                                   ? "bg-primaryTheme text-white ml-2"
-                                  : "bg-gray-200 w-auto text-gray-800 mr-2"
+                                  : "bg-gray-200 text-gray-800 mr-2"
                               }`}
                             >
-                              <div className="flex justify-between items-center">
-                                {/* User Name */}
-                                <span className="font-bold">
-                                  {!msg?.isOwnMessage &&
-                                    msg?.user?.replace(/[()]/g, "")}
-                                </span>
-                              </div>
+                              {!msg?.isOwnMessage && (
+                                <div className="font-bold mb-1">
+                                  {msg?.user?.replace(/[()]/g, "")}
+                                </div>
+                              )}
 
-                              {/* Message Text */}
-                              <div className="mt-1">
-                                <Linkify
-                                  componentDecorator={(
-                                    decoratedHref: any,
-                                    decoratedText: any,
-                                    key: any
-                                  ) => (
-                                    <a
-                                      href={decoratedHref}
-                                      key={key}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-blue-500 hover:underline"
-                                    >
-                                      {decoratedText}
-                                    </a>
-                                  )}
-                                >
-                                  <span className="break-words">
-                                    {msg?.text}
-                                  </span>
-                                </Linkify>
-                              </div>
+                              <div className="break-words">{msg?.text}</div>
 
-                              {/* Image Attachment (if present) */}
-                              {imgSrc ? (
+                              {imgSrc && (
                                 <div className="mt-2">
                                   <img
                                     src={imgSrc}
                                     alt="Message Attachment"
-                                    className="max-w-[100%] h-[20rem] rounded-md"
+                                    className="max-w-full h-[20rem] rounded-md"
+                                    loading="lazy"
                                   />
                                 </div>
-                              ) : msg?.otherMessageDetails?.attachments?.[0] ? (
-                                // fallback when an attachment exists but we couldn't decode it
-                                <div className="mt-2 italic text-xs text-gray-500">
-                                  Sent an attachment
-                                </div>
-                              ) : null}
+                              )}
 
-                              {/* Message Timestamp */}
                               <div
                                 className={`text-xs mt-1 ${
-                                  !msg?.isOwnMessage
-                                    ? "text-black"
-                                    : "text-white"
+                                  msg?.isOwnMessage
+                                    ? "text-white"
+                                    : "text-black"
                                 }`}
                               >
                                 {new Date(timestamp).toLocaleTimeString()}
                               </div>
-
-                              {/* Optional: Display Typing Indicator */}
                             </div>
                           </div>
                         );
@@ -689,6 +508,22 @@ function ChatWindow({ username }: any) {
                             </div>
                           </div>
                         </div>
+                      )}
+                      <div ref={messagesEndRef} />
+
+                      {status === "waiting" && (
+                        <>
+                          <div className="text-center text-gray-500">
+                            Please wait! We are looking for a match...
+                          </div>
+                          <div>
+                            <img
+                              src={Logo}
+                              alt="Logo"
+                              className="w-40 h-20 mx-auto"
+                            />
+                          </div>
+                        </>
                       )}
                     </div>
                   </div>
@@ -854,7 +689,11 @@ function UserRegistration() {
       <div className="text-2xl pl-2 py-4 font-bold  center w-full text-primaryTheme">
         {/* <div>Blind</div> */}
         <div className="flex justify-center items-center w-full">
-          <img src={CoffeeDonut} className="w-30 h-20 center" alt="Blind Logo Here" />
+          <img
+            src={CoffeeDonut}
+            className="w-30 h-20 center"
+            alt="Blind Logo Here"
+          />
         </div>
       </div>
 

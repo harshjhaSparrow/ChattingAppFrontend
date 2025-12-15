@@ -1,33 +1,32 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-export function capitalizeFirstLetters(str: string) {
-  // Convert string to array of characters
-  const chars: any = str.split("");
+// src/Utils/commonFunctions.ts
 
-  // Capitalize the first letter of each word
-  for (let i = 0; i < chars.length; i++) {
-    if (i === 0 || chars[i - 1] === " ") {
-      chars[i] = chars[i].toUpperCase();
-    } else {
-      chars[i] = chars[i].toLowerCase();
-    }
+export const capitalizeFirstLetters = (str: string): string =>
+  str
+    .trim()
+    .split(/\s+/)
+    .map(
+      (word) =>
+        word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    )
+    .join(" ");
+
+export const arrayBufferToBase64 = (
+  buffer: any | Uint8Array
+): string => {
+  const bytes =
+    buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+
+  let binary = "";
+  const chunkSize = 0x8000;
+
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(
+      ...bytes.subarray(i, i + chunkSize)
+    );
   }
 
-  // Join the characters back into a string
-  return chars.join("");
-}
+  return `data:image/png;base64,${btoa(binary)}`;
+};
 
-
-export function arrayBufferToBase64(arrayBuffer: any) {
-  const uint8Array = new Uint8Array(arrayBuffer);
-  let binaryString = "";
-  for (let i = 0; i < uint8Array.length; i++) {
-    binaryString += String.fromCharCode(uint8Array[i]);
-  }
-  const base64String = btoa(binaryString);
-  return `data:image/png;base64,${base64String}`;
-}
-
-export function genClientId() {
-  return `cmsg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-}
-
+export const genClientId = (): string =>
+  `cmsg_${crypto.randomUUID()}`;

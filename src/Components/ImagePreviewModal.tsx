@@ -1,6 +1,4 @@
-// ImagePreviewModal.tsx
-
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Modal,
   ModalOverlay,
@@ -10,23 +8,35 @@ import {
   ModalFooter,
   Button,
   Image,
-  VStack,
+  Input,
   Text,
+  VStack,
 } from "@chakra-ui/react";
 
-type Props = {
+type ImagePreviewModalProps = {
   isOpen: boolean;
-  urls: string[];           // Preview URLs
-  onClose: () => void;      // Close modal
-  onSend: () => void;       // Trigger send action
+  urls: string[]; // object URLs for preview
+  onClose: () => void;
+  onSend: (caption?: string) => void;
 };
 
-export default function ImagePreviewModal({ isOpen, urls, onClose, onSend }: Props) {
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} size="lg">
-      <ModalOverlay backdropFilter="blur(5px)" />
+const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
+  isOpen,
+  urls,
+  onClose,
+  onSend,
+}) => {
+  const [caption, setCaption] = useState<string>("");
 
-      <ModalContent bg="gray.900" color="white" borderRadius="lg">
+  // Reset caption when modal closes
+  useEffect(() => {
+    if (!isOpen) setCaption("");
+  }, [isOpen]);
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
+      <ModalOverlay backdropFilter="blur(5px)" />
+      <ModalContent bg="gray.900" color="white" borderRadius="lg" maxW="720px">
         <ModalHeader fontSize="lg" fontWeight="semibold">
           Preview
         </ModalHeader>
@@ -40,28 +50,32 @@ export default function ImagePreviewModal({ isOpen, urls, onClose, onSend }: Pro
                 <Image
                   key={index}
                   src={url}
-                  alt="preview"
+                  alt={`preview-${index}`}
                   borderRadius="lg"
-                  maxH="350px"
+                  maxH="420px"
                   objectFit="contain"
                 />
               ))}
             </VStack>
           )}
+
+          <Input
+            mt={4}
+            placeholder="Write a caption (optional)"
+            value={caption}
+            onChange={(e) => setCaption(e.target.value)}
+            bg="whiteAlpha.50"
+            color="white"
+          />
         </ModalBody>
 
         <ModalFooter gap={3}>
-          <Button
-            variant="outline"
-            colorScheme="red"
-            onClick={onClose}
-          >
+          <Button variant="outline" colorScheme="red" onClick={onClose}>
             Cancel
           </Button>
-
           <Button
             colorScheme="blue"
-            onClick={onSend}
+            onClick={() => onSend(caption)}
             isDisabled={urls.length === 0}
           >
             Send
@@ -70,4 +84,6 @@ export default function ImagePreviewModal({ isOpen, urls, onClose, onSend }: Pro
       </ModalContent>
     </Modal>
   );
-}
+};
+
+export default ImagePreviewModal;
