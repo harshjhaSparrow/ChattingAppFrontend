@@ -11,13 +11,14 @@ import {
   Input,
   Text,
   VStack,
+  Spinner,
 } from "@chakra-ui/react";
 
 type ImagePreviewModalProps = {
   isOpen: boolean;
-  urls: string[]; // object URLs for preview
+  urls: string[];
   onClose: () => void;
-  onSend: (caption?: string) => void;
+  onSend: (caption?: string) => Promise<void>; // ⬅️ async
 };
 
 const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
@@ -26,15 +27,30 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
   onClose,
   onSend,
 }) => {
-  const [caption, setCaption] = useState<string>("");
+  const [caption, setCaption] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
 
-  // Reset caption when modal closes
   useEffect(() => {
-    if (!isOpen) setCaption("");
+    if (!isOpen) {
+      setCaption("");
+      setIsUploading(false);
+    }
   }, [isOpen]);
 
+  const handleSend = async () => {
+    try {
+      setIsUploading(true);
+      await onSend(caption); // wait for Cloudinary upload
+      onClose(); // close only after success
+    } catch (err) {
+      console.error("Upload failed", err);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
+    <Modal isOpen={isOpen} onClose={isUploading ? () => {} : onClose} size="lg" isCentered>
       <ModalOverlay backdropFilter="blur(5px)" />
       <ModalContent bg="gray.900" color="white" borderRadius="lg" maxW="720px">
         <ModalHeader fontSize="lg" fontWeight="semibold">
@@ -66,19 +82,27 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
             onChange={(e) => setCaption(e.target.value)}
             bg="whiteAlpha.50"
             color="white"
+            isDisabled={isUploading}
           />
         </ModalBody>
 
         <ModalFooter gap={3}>
-          <Button variant="outline" colorScheme="red" onClick={onClose}>
+          <Button
+            variant="outline"
+            colorScheme="red"
+            onClick={onClose}
+            isDisabled={isUploading}
+          >
             Cancel
           </Button>
+
           <Button
             colorScheme="blue"
-            onClick={() => onSend(caption)}
-            isDisabled={urls.length === 0}
+            onClick={handleSend}
+            isDisabled={urls.length === 0 || isUploading}
+            leftIcon={isUploading ? <Spinner size="sm" /> : undefined}
           >
-            Send
+            {isUploading ? "Sending..." : "Send"}
           </Button>
         </ModalFooter>
       </ModalContent>

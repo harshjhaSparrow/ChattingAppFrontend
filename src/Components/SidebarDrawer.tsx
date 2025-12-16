@@ -108,7 +108,7 @@ export default function SidebarDrawer({ isOpen, onClose, username = "You", avata
                 py={3}
                 onKeyDown={(e) => {
                   if ((e as any).key === "Enter") {
-                    console.log("Search");
+                    // console.log("Search");
                   }
                 }}
               />

@@ -10,7 +10,6 @@ import {
   useState,
 } from "react";
 import { createRoot } from "react-dom/client";
-import Linkify from "react-linkify";
 import { io } from "socket.io-client";
 import CoffeeDonut from "../public/coffeedonutgif.png";
 import Logo from "../public/Logo.png";
@@ -18,9 +17,8 @@ import "./App.css";
 import ImagePreviewModal from "./Components/ImagePreviewModal";
 import SidebarDrawer from "./Components/SidebarDrawer";
 import {
-  arrayBufferToBase64,
-  capitalizeFirstLetters,
-} from "./Utils/Commonfunctions";
+  capitalizeFirstLetters
+} from "./Utils/commonfunctions";
 
 function ChatWindow({ username }: any) {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
