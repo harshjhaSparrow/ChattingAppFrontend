@@ -8,7 +8,7 @@ import { io } from "socket.io-client";
 import heart from "../../public/Beatinghearts.gif";
 import LookingForPartner from "../../public/LookingForPartner.gif";
 import CoffeeDonut from "../../public/coffeedonutgif.gif";
-import { arrayBufferToBase64, capitalizeFirstLetters, genClientId } from "../../src/Utils/commonFunctions";
+import { arrayBufferToBase64, capitalizeFirstLetters, genClientId } from "~/Utils/commonFunctions";
 
 type Props = { username: string };
 
