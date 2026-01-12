@@ -16,7 +16,17 @@ import Logo from "../public/Logo.png";
 import "./App.css";
 import ImagePreviewModal from "./Components/ImagePreviewModal";
 import SidebarDrawer from "./Components/SidebarDrawer";
-import { capitalizeFirstLetters } from "./Utils/commonFunctions";
+
+
+ const capitalizeFirstLetters = (str: string): string =>
+  str
+    .trim()
+    .split(/\s+/)
+    .map(
+      (word) =>
+        word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    )
+    .join(" ");
 
 function ChatWindow({ username }: any) {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);

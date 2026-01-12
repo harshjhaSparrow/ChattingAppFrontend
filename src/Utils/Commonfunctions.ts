@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/Utils/commonFunctions.ts
 
 export const capitalizeFirstLetters = (str: string): string =>
